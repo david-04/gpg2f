@@ -10,6 +10,7 @@ function gpg2f_help() {
     echo "[challenge-response] ... \"yubikey-slot-1\", \"yubikey-slot-2\" or a file with a GnuPG-encrypted hex secret"
     echo "[static-password] ...... file with a GnuPG-encrypted static password"
     echo "[gpg-command] .......... base command and options for GnuPG (e.g. gpg2 --batch --quiet)"
+    echo "[touch-notification] ... command to to display a \"Touch the security key\" pop-up notification"
     echo "[file] ................. file to encrypt to or to decrypt from"
     echo
     echo "Setting either [challenge-response] or [static-password] to an empty string disables the respective feature."
@@ -23,7 +24,8 @@ function gpg2f_help() {
 # $2 ... empty string, "yubikey-slot-1", "yubikey-slot-2" or a file with a GnuPG-encrypted challenge-response hex secret
 # $3 ... empty string or a file with a GnuPG-encrypted static password
 # $4 ... GnuPG base command and common options
-# $5 ... optional: file to read from (when decrypting) or to write to (when encrypting)
+# $5 ... command to to display a "Touch the security key" pop-up notification
+# $6 ... optional: file to read from (when decrypting) or to write to (when encrypting)
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_main() {
@@ -62,7 +64,8 @@ function gpg2f_main() {
 # $1 ... empty string, "yubikey-slot-1", "yubikey-slot-2" or a file with a GnuPG-encrypted challenge-response hex secret
 # $2 ... empty string or a file with a GnuPG-encrypted static password
 # $3 ... GnuPG base command and common options
-# $4 ... optional: file to read from (when decrypting) or to write to (when encrypting)
+# $4 ... command to to display a "Touch the security key" pop-up notification
+# $5 ... optional: file to read from (when decrypting) or to write to (when encrypting)
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_encrypt() {
@@ -70,7 +73,7 @@ function gpg2f_encrypt() {
     local RESPONSE=""
     if [[ -n "$1" ]]; then
         CHALLENGE=$(gpg2f_generate_random_challenge) || return 1
-        RESPONSE=$(gpg2f_challenge_response "$3" "$1" "${CHALLENGE}") || return 1
+        RESPONSE=$(gpg2f_challenge_response "$3" "$4" "$1" "${CHALLENGE}") || return 1
     fi
     local STATIC_PASSWORD=""
     if [[ -n "$2" ]]; then
@@ -81,21 +84,21 @@ function gpg2f_encrypt() {
         echo "ERROR: The encryption password is empty" >&2
         return 1
     fi
-    if [[ -n "$4" ]]; then
-        mkdir -p "$(dirname "$4")"
+    if [[ -n "$5" ]]; then
+        mkdir -p "$(dirname "$5")"
     fi
     if [[ -n "${CHALLENGE}" ]]; then
-        if [[ -n "$4" ]]; then
-            echo "${CHALLENGE?}" >"$4.tmp"
+        if [[ -n "$5" ]]; then
+            echo "${CHALLENGE?}" >"$5.tmp"
         else
             echo "${CHALLENGE?}"
         fi
     else
-        echo -n "" >"$4.tmp"
+        echo -n "" >"$5.tmp"
     fi
     local EXIT_CODE
-    if [[ -n "$4" ]]; then
-        gpg2f_run_gpg2 "$3" --armor --symmetric --batch --passphrase-fd 3 --output - 3<<<"${PASSWORD?}" >>"$4.tmp"
+    if [[ -n "$5" ]]; then
+        gpg2f_run_gpg2 "$3" --armor --symmetric --batch --passphrase-fd 3 --output - 3<<<"${PASSWORD?}" >>"$5.tmp"
         EXIT_CODE=$?
     else
         gpg2f_run_gpg2 "$3" --armor --symmetric --batch --passphrase-fd 3 --output - 3<<<"${PASSWORD?}"
@@ -103,20 +106,20 @@ function gpg2f_encrypt() {
     fi
     if [[ ${EXIT_CODE} -ne 0 ]]; then
         echo "ERROR: Failed to encrypt stdin with gpg2" >&2
-        if [[ -n "$4" ]]; then
-            rm -f "$4.tmp"
+        if [[ -n "$5" ]]; then
+            rm -f "$5.tmp"
         fi
         return 1
     fi
 
-    if [[ -n "$4" ]]; then
-        if ! mv -f "$4.tmp" "$4"; then
-            echo "ERROR: Failed to overwrite \"$4\" with \"$4.tmp\"" >&2
-            rm -f "$4.tmp"
+    if [[ -n "$5" ]]; then
+        if ! mv -f "$5.tmp" "$5"; then
+            echo "ERROR: Failed to overwrite \"$5\" with \"$5.tmp\"" >&2
+            rm -f "$5.tmp"
             return 1
-        elif [[ ! -f "$4" ]]; then
-            echo "ERROR: Failed to overwrite \"$4\"" >&2
-            rm -f "$4.tmp"
+        elif [[ ! -f "$5" ]]; then
+            echo "ERROR: Failed to overwrite \"$5\"" >&2
+            rm -f "$5.tmp"
             return 1
         fi
     fi
@@ -129,28 +132,29 @@ function gpg2f_encrypt() {
 # $1 ... empty string, "yubikey-slot-1", "yubikey-slot-2" or a file with a GnuPG-encrypted challenge-response hex secret
 # $2 ... empty string or a file with a GnuPG-encrypted static password
 # $3 ... GnuPG base command and common options
-# $4 ... optional: file to read from (when decrypting) or to write to (when encrypting)
+# $4 ... command to to display a "Touch the security key" pop-up notification
+# $5 ... optional: file to read from (when decrypting) or to write to (when encrypting)
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_decrypt() {
     local FILE_CONTENT
-    if [[ -z "$4" ]]; then
+    if [[ -z "$5" ]]; then
         FILE_CONTENT="$(cat)"
-    elif [[ ! -f "$4" ]]; then
-        echo "ERROR: File \"$4\" does not exist" >&2
+    elif [[ ! -f "$5" ]]; then
+        echo "ERROR: File \"$5\" does not exist" >&2
         return 1
     else
-        FILE_CONTENT="$(cat "$4")"
+        FILE_CONTENT="$(cat "$5")"
     fi
     local CHALLENGE=""
     local RESPONSE=""
     if [[ -n "$1" ]]; then
         CHALLENGE=$(echo -en "${FILE_CONTENT?}" | head -n 1)
         if [[ $? -ne 0 || -z "${CHALLENGE?}" ]]; then
-            echo "ERROR: Failed to extract the challenge from \"$4\"" >&2
+            echo "ERROR: Failed to extract the challenge from \"$5\"" >&2
             return 1
         fi
-        RESPONSE=$(gpg2f_challenge_response "$3" "$1" "${CHALLENGE}") || return 1
+        RESPONSE=$(gpg2f_challenge_response "$3" "$4" "$1" "${CHALLENGE}") || return 1
     fi
     local STATIC_PASSWORD=""
     if [[ -n "$2" ]]; then
@@ -169,7 +173,7 @@ function gpg2f_decrypt() {
     fi
     local DECRYPTED_CONTENT
     if ! DECRYPTED_CONTENT=$(echo -en "${FILE_CONTENT?}" | tail -n "${TAIL_OPTION?}" | gpg2f_run_gpg2 "$3" --decrypt --batch --passphrase-fd 3 --output - 3<<<"${PASSWORD?}"); then
-        echo "ERROR: Failed to decrypt \"$4\" with gpg2" >&2
+        echo "ERROR: Failed to decrypt \"$5\" with gpg2" >&2
         return 1
     fi
     echo -en "${DECRYPTED_CONTENT?}"
@@ -196,16 +200,17 @@ function gpg2f_generate_random_challenge() {
 # Calculate the response for a challenge
 #-----------------------------------------------------------------------------------------------------------------------
 # $1 ... GnuPG base command and common options
-# $2 ... "yubikey-slot-1", "yubikey-slot-2" or a file with a GnuPG-encrypted challenge-response hex secret
-# $3 ... challenge
+# $2 ... command to to display a "Touch the security key" pop-up notification
+# $3 ... "yubikey-slot-1", "yubikey-slot-2" or a file with a GnuPG-encrypted challenge-response hex secret
+# $4 ... challenge
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_challenge_response() {
-    if [[ "$2" == "yubikey-slot-1" ]]; then
-        gpg2f_challenge_response_yubikey 1 "$3"
+    if [[ "$3" == "yubikey-slot-1" ]]; then
+        gpg2f_challenge_response_yubikey "$2" 1 "$4"
         return $?
-    elif [[ "$2" == "yubikey-slot-2" ]]; then
-        gpg2f_challenge_response_yubikey 2 "$3"
+    elif [[ "$3" == "yubikey-slot-2" ]]; then
+        gpg2f_challenge_response_yubikey "$2" 2 "$4"
         return $?
     else
         gpg2f_challenge_response_openssl "$@"
@@ -216,18 +221,27 @@ function gpg2f_challenge_response() {
 #-----------------------------------------------------------------------------------------------------------------------
 # Perform a challenge-response using a Yubikey
 #-----------------------------------------------------------------------------------------------------------------------
-# $1 ... yubikey slot (1 or 2)
-# $2 ... challenge
+# $1 ... command to to display a "Touch the security key" pop-up notification
+# $2 ... yubikey slot (1 or 2)
+# $3 ... challenge
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_challenge_response_yubikey() {
-    local RESPONSE
-    RESPONSE="$(ykman otp calculate "$1" "$2" | head -n 1 | sed 's/[\r\n]//g')"
-    if [[ $? -eq 0 && -n "${RESPONSE}" ]]; then
+    local RESPONSE NOTIFICATION_COMMAND_PID EXIT_CODE
+    if [[ -n "$1" ]]; then
+        $1 "Touch the security key (challenge-response)" &
+        NOTIFICATION_COMMAND_PID=$!
+    fi
+    RESPONSE="$(ykman otp calculate "$2" "$3" | head -n 1 | sed 's/[\r\n]//g')"
+    EXIT_CODE=$?
+    if [[ -n "${NOTIFICATION_COMMAND_PID?}" ]]; then
+        kill "${NOTIFICATION_COMMAND_PID?}" >/dev/null 2>&1
+    fi
+    if [[ ${EXIT_CODE?} -eq 0 && -n "${RESPONSE}" ]]; then
         echo -n "${RESPONSE?}"
         return 0
     else
-        echo "ERROR: Failed to run \"ykman otp calculate $1 [challenge]\"" >&2
+        echo "ERROR: Failed to run \"ykman otp calculate $2 [challenge]\"" >&2
         return 1
     fi
 }

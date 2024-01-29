@@ -24,3 +24,9 @@ export GPG2F_CFG_STATIC_PASSWORD_DECRYPT="${GPG2F_CFG_STATIC_PASSWORD_ENCRYPT?}"
 #-----------------------------------------------------------------------------------------------------------------------
 
 export GPG2F_CFG_GPG_COMMAND="gpg2 --quiet --no-permission-warning"
+
+#-----------------------------------------------------------------------------------------------------------------------
+# A command that diesplays a "touch the security key" notification (leave emtpy to disable notifiations)
+#-----------------------------------------------------------------------------------------------------------------------
+
+export GPG2F_CFG_TOUCH_SECURITY_KEY_NOTIFICATION_COMMAND=".gpg2f/runtime/show-notification.sh"
