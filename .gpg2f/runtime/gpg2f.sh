@@ -5,7 +5,7 @@
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_help() {
-    echo "Syntax: gpg-sym2f.sh [encrypt|decrypt] [challenge-response] [static-password] [gpg-command] [file]"
+    echo "Syntax: gpg2f.sh [encrypt|decrypt] [challenge-response] [static-password] [gpg-command] [touch-nofification] [file]"
     echo ""
     echo "[challenge-response] ... \"yubikey-slot-1\", \"yubikey-slot-2\" or a file with a GnuPG-encrypted hex secret"
     echo "[static-password] ...... file with a GnuPG-encrypted static password"
@@ -33,7 +33,7 @@ function gpg2f_main() {
         gpg2f_help >&2
         return 1
     fi
-    if [[ $# -ne 4 && $# -ne 5 ]]; then
+    if [[ $# -ne 5 && $# -ne 6 ]]; then
         echo -e "ERROR: Invalid parameters: $*\n" >&2
         gpg2f_help >&2
         return 1
