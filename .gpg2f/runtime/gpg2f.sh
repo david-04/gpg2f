@@ -227,15 +227,14 @@ function gpg2f_challenge_response() {
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_challenge_response_yubikey() {
-    local RESPONSE NOTIFICATION_COMMAND_PID EXIT_CODE
+    local RESPONSE EXIT_CODE
     if [[ -n "$1" ]]; then
-        $1 "Touch the security key (challenge-response)" &
-        NOTIFICATION_COMMAND_PID=$!
+        exec 3> >($1 "Touch the YubiKey (challenge-response)")
     fi
     RESPONSE="$(ykman otp calculate "$2" "$3" | head -n 1 | sed 's/[\r\n]//g')"
     EXIT_CODE=$?
-    if [[ -n "${NOTIFICATION_COMMAND_PID?}" ]]; then
-        kill "${NOTIFICATION_COMMAND_PID?}" >/dev/null 2>&1
+    if [[ -n "$1" ]]; then
+        exec 3>&-
     fi
     if [[ ${EXIT_CODE?} -eq 0 && -n "${RESPONSE}" ]]; then
         echo -n "${RESPONSE?}"
