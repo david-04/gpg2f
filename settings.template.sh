@@ -28,8 +28,8 @@ export GPG2F_CFG_GPG_COMMAND="gpg2 --quiet --no-permission-warning"
 #-----------------------------------------------------------------------------------------------------------------------
 # A command to display "Touch the YubiKey" notification
 #-----------------------------------------------------------------------------------------------------------------------
-# - .gpg2f/runtime/show-notification-java.sh for the built-in Java notifier
-# - .gpg2f/runtime/show-notification-powershell.sh for the built-in PowerShell notifier
+# - .gpg2f/runtime/show-notification-java.sh for the built-in Java notifier (pop-up window)
+# - .gpg2f/runtime/show-notification-powershell.sh for the built-in PowerShell notifier (balloon tip/toast)
 # - .gpg2f/runtime/show-notification.sh to automatically pick a built-in notifier
 # - Leave empty to disable pop-up notification (e.g. when challenge response does not require a touch)
 #-----------------------------------------------------------------------------------------------------------------------
