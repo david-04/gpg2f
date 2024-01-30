@@ -6,7 +6,7 @@
 # - Leave empty to disable challenge-reponse (use the static password only)
 #-----------------------------------------------------------------------------------------------------------------------
 
-export GPG2F_CFG_CHALLENGE_RESPONSE_ENCRYPT="yubikey-slot-2"
+export GPG2F_CFG_CHALLENGE_RESPONSE_ENCRYPT=".gpg2f/keys/challenge-response-secret.example.gpg"
 export GPG2F_CFG_CHALLENGE_RESPONSE_DECRYPT="${GPG2F_CFG_CHALLENGE_RESPONSE_ENCRYPT?}"
 
 #-----------------------------------------------------------------------------------------------------------------------

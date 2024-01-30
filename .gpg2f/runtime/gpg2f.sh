@@ -213,7 +213,7 @@ function gpg2f_challenge_response() {
         gpg2f_challenge_response_yubikey "$2" 2 "$4"
         return $?
     else
-        gpg2f_challenge_response_openssl "$@"
+        gpg2f_challenge_response_openssl "$1" "$3" "$4"
         return $?
     fi
 }
