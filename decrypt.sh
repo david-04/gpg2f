@@ -12,8 +12,8 @@ if [[ ! -f "./decrypt.sh" ]]; then
     return 1 2>/dev/null || exit 1
 fi
 
-if [[ ! -f "./settings.sh" ]]; then
-    echo "ERROR: $(pwd)/settings.sh does not exist" >&2
+if [[ ! -f "./settings.sh" && ! -f "./settings.template.sh" ]]; then
+    echo "ERROR: Neither $(pwd)/settings.sh nor $(pwd)/settings.template.sh exists" >&2
     return 1 2>/dev/null || exit 1
 fi
 
@@ -26,7 +26,16 @@ fi
 # Load the configuration and decrypt
 #-----------------------------------------------------------------------------------------------------------------------
 
-source ./settings.sh
+if [[ -f "./settings.sh" ]]; then
+    # shellcheck disable=SC1091
+    source ./settings.sh
+else
+    source ./settings.template.sh
+fi
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Decrypt
+#-----------------------------------------------------------------------------------------------------------------------
 
 if ! . .gpg2f/runtime/gpg2f.sh decrypt "${GPG2F_CFG_CHALLENGE_RESPONSE_DECRYPT?}" "${GPG2F_CFG_STATIC_PASSWORD_DECRYPT?}" "${GPG2F_CFG_GPG_COMMAND?}" "$GPG2F_CFG_TOUCH_SECURITY_KEY_NOTIFICATION_COMMAND" "$@"; then
     unset GPG2F_CFG_CHALLENGE_RESPONSE_ENCRYPT GPG2F_CFG_CHALLENGE_RESPONSE_DECRYPT GPG2F_CFG_STATIC_PASSWORD_ENCRYPT GPG2F_CFG_STATIC_PASSWORD_DECRYPT GPG2F_CFG_GPG_COMMAND GPG2F_CFG_TOUCH_SECURITY_KEY_NOTIFICATION_COMMAND

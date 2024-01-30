@@ -16,7 +16,7 @@ export GPG2F_CFG_CHALLENGE_RESPONSE_DECRYPT="${GPG2F_CFG_CHALLENGE_RESPONSE_ENCR
 # - Leave empty to disable the static password (use challenge-reponse only)
 #-----------------------------------------------------------------------------------------------------------------------
 
-export GPG2F_CFG_STATIC_PASSWORD_ENCRYPT=".gpg2f/keys/static-password.gpg"
+export GPG2F_CFG_STATIC_PASSWORD_ENCRYPT=".gpg2f/keys/static-password.example.gpg"
 export GPG2F_CFG_STATIC_PASSWORD_DECRYPT="${GPG2F_CFG_STATIC_PASSWORD_ENCRYPT?}"
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -26,7 +26,12 @@ export GPG2F_CFG_STATIC_PASSWORD_DECRYPT="${GPG2F_CFG_STATIC_PASSWORD_ENCRYPT?}"
 export GPG2F_CFG_GPG_COMMAND="gpg2 --quiet --no-permission-warning"
 
 #-----------------------------------------------------------------------------------------------------------------------
-# A command that diesplays a "touch the security key" notification (leave emtpy to disable notifiations)
+# A command to display "Touch the YubiKey" notification
+#-----------------------------------------------------------------------------------------------------------------------
+# - .gpg2f/runtime/show-notification-java.sh for the built-in Java notifier
+# - .gpg2f/runtime/show-notification-powershell.sh for the built-in PowerShell notifier
+# - .gpg2f/runtime/show-notification.sh to automatically pick a built-in notifier
+# - Leave empty to disable pop-up notification (e.g. when challenge response does not require a touch)
 #-----------------------------------------------------------------------------------------------------------------------
 
 export GPG2F_CFG_TOUCH_SECURITY_KEY_NOTIFICATION_COMMAND=".gpg2f/runtime/show-notification.sh"
