@@ -1,370 +1,366 @@
 #!/usr/bin/env bash
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Display the program syntax
+# Load the configuration
 #-----------------------------------------------------------------------------------------------------------------------
 
-function gpg2f_help() {
-    echo "Syntax: gpg2f.sh [encrypt|decrypt] [challenge-response] [static-password] [gpg-command] [touch-nofification] [file]"
-    echo ""
-    echo "[challenge-response] ... \"yubikey-slot-1\", \"yubikey-slot-2\" or a file with a GnuPG-encrypted hex secret"
-    echo "[static-password] ...... file with a GnuPG-encrypted static password"
-    echo "[gpg-command] .......... base command and options for GnuPG (e.g. gpg2 --batch --quiet)"
-    echo "[touch-notification] ... command to to display a \"Touch the security key\" pop-up notification"
-    echo "[file] ................. file to encrypt to or to decrypt from"
-    echo
-    echo "Setting either [challenge-response] or [static-password] to an empty string disables the respective feature."
-    echo "Omitting [file] or setting it to an empty string encrypts to stdout or decrypts from stdin."
+if [[ -f "./settings.sh" ]]; then
+    # shellcheck disable=SC1091
+    . "./settings.sh"
+elif [[ -f "./.gpg2f/examples/settings.example.sh" ]]; then
+    # shellcheck disable=SC1091
+    . "./.gpg2f/examples/settings.example.sh"
+else
+    echo "ERROR: Neither $(pwd)/settings.sh nor $(pwd)/.gpg2f/examples.settings.example.sh exists" >&2
+    # shellcheck disable=SC2317
+    return 1 2>/dev/null || exit 1
+fi
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Run the application and unset all functions and variables. All parameters are passed through to gpg2f_main.
+#-----------------------------------------------------------------------------------------------------------------------
+
+function gpg2f_run_and_unset() {
+    local FUNCTIONS_TO_UNSET=(
+        gpg2f_run_and_unset
+        gpg2f_main
+        gpg2f_display_syntax_help
+        gpg2f_display_version_and_copyright
+        gpg2f_validate_configuration
+        gpg2f_encrypt
+        gpg2f_decrypt
+        gpg2f_generate_random_seed
+        gpg2f_normalize_seed
+        gpg2f_derive_encryption_key
+        gpg2f_validate_and_hash_derived_key
+        gpg2f_run_gpg
+    )
+    local CONFIG_VARIABLES_TO_UNSET=(
+        GPG2F_GPG_CMD
+        GPG2F_DECRYPTION_KEY_DERIVATION_CMD
+        GPG2F_ENCRYPTION_KEY_DERIVATION_CMD
+        GPG2F_MIN_DERIVED_KEY_LENGTH
+        GPG2F_GENERATED_SEED_CMD
+        GPG2F_GENERATED_SEED_EXPECTED_LENGTH
+        GPG2F_HASH_DERIVED_KEY_CMD
+        GPG2F_NOTIFICATION_CMD
+        GPG2F_DEFAULT_NOTIFICATION_OPTIONS
+    )
+    local EXIT_CODE
+    gpg2f_main "$@"
+    EXIT_CODE=$?
+    unset "${FUNCTIONS_TO_UNSET?}" "${CONFIG_VARIABLES_TO_UNSET?}"
+    unset CONFIG_VARIABLES_TO_UNSET FUNCTIONS_TO_UNSET
+    return ${EXIT_CODE?}
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Main entry point
 #-----------------------------------------------------------------------------------------------------------------------
 # $1 ... "encrypt" or "decrypt"
-# $2 ... empty string, "yubikey-slot-1", "yubikey-slot-2" or a file with a GnuPG-encrypted challenge-response hex secret
-# $3 ... empty string or a file with a GnuPG-encrypted static password
-# $4 ... GnuPG base command and common options
-# $5 ... command to to display a "Touch the security key" pop-up notification
-# $6 ... optional: file to read from (when decrypting) or to write to (when encrypting)
+# $2 ... optional: file to read from (when decrypting) or to write to (when encrypting)
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_main() {
-    if [[ $# -eq 0 || $1 == "--help" || $1 == "-help" || $1 == "-h" ]]; then
-        gpg2f_help >&2
-        return 1
-    fi
-    if [[ $# -ne 5 && $# -ne 6 ]]; then
-        echo -e "ERROR: Invalid parameters: $*\n" >&2
-        gpg2f_help >&2
-        return 1
-    fi
-    if [[ -z "$2" && -z "$3" ]]; then
-        echo "ERROR: Invalid parameters: [challenge-response] and [static-password] are both emtpy (one must be set)" >&2
-        gpg2f_help >&2
-        return 1
-    fi
-    if [[ $1 == "encrypt" ]]; then
+    local OPERATION=""
+    if [[ "$1" == "encrypt" || "$1" == "decrypt" ]]; then
+        OPERATION="$1"
         shift
-        gpg2f_encrypt "$@"
-        return $?
-    elif [[ $1 == "decrypt" ]]; then
-        shift
-        gpg2f_decrypt "$@"
-        return $?
-    else
-        echo "ERROR: Invalid parameters: Unknown operation \"$1\" (allowed values: \"encrypt\" or \"decrypt\")" >&2
-        gpg2f_help >&2
+    fi
+    if [[ "$1" == "--help" || "$1" == "-help" || "$1" == "-h" ]]; then
+        gpg2f_display_syntax_help
+        return 0
+    elif [[ "$1" == "--version" || "$1" == "-version" || "$1" == "-v" ]]; then
+        gpg2f_display_version_and_copyright
+        return 0
+    fi
+    if [[ 1 -lt $# || -z "${OPERATION?}" ]]; then
+        if [[ -n "${OPERATION?}" ]]; then
+            echo "ERROR: Invalid parameters: gpg2f.sh ${OPERATION?} $*" >&2
+        else
+            echo "ERROR: Invalid parameters: gpg2f.sh $*" >&2
+        fi
+        echo "" >&2
+        gpg2f_display_syntax_help >&2
         return 1
     fi
+    if ! gpg2f_validate_configuration >&2; then
+        return 1
+    fi
+    if ! "gpg2f_${OPERATION?}" "$@"; then
+        return 1
+    fi
+}
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Display syntax help
+#-----------------------------------------------------------------------------------------------------------------------
+
+function gpg2f_display_syntax_help() {
+    echo "gpg2f - Symmetric multifactor-encryption with GnuPG"
+    echo ""
+    echo "Syntax: encrypt.sh [file]"
+    echo "    or: decrypt.sh [file]"
+    echo ""
+    echo "Encrypt stdin to the given [file] or decrypt the given [file] to stdout."
+    echo "If [file] is not given, encrypt to stdout or decrypt from stdin."
+    echo ""
+    echo "Full documentation: https://github.com/david-04/gpg2f/blob/main/README.md"
+}
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Display version information
+#-----------------------------------------------------------------------------------------------------------------------
+
+function gpg2f_display_version_and_copyright() {
+    echo "gpg2f 0.0.0"                      # version
+    echo "Copyright (c) 2024 David Hofmann" # copyright
+    echo "License: MIT <https://opensource.org/licenses/MIT>"
+}
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Validate the configuration
+#-----------------------------------------------------------------------------------------------------------------------
+
+function gpg2f_validate_configuration() {
+    local EXIT_CODE=0
+    if [[ -z "${GPG2F_GPG_CMD}" ]]; then
+        echo "ERROR: GPG2F_GPG_CMD is not set"
+        EXIT_CODE=1
+    fi
+    if [[ -z "${GPG2F_GENERATED_SEED_CMD}" ]]; then
+        echo "ERROR: GPG2F_GENERATED_SEED_CMD is not set"
+        EXIT_CODE=1
+    fi
+    if [[ -z "${GPG2F_GENERATED_SEED_EXPECTED_LENGTH}" ]]; then
+        echo "ERROR: GPG2F_GENERATED_SEED_EXPECTED_LENGTH is not set"
+        EXIT_CODE=1
+    fi
+    if [[ -z "${GPG2F_DECRYPTION_KEY_DERIVATION_CMD}" ]]; then
+        echo "ERROR: GPG2F_DECRYPTION_KEY_DERIVATION_CMD is not set"
+        EXIT_CODE=1
+    fi
+    if [[ "${#GPG2F_DECRYPTION_KEY_DERIVATION_CMD[@]}" -eq 0 ]]; then
+        echo "ERROR: GPG2F_DECRYPTION_KEY_DERIVATION_CMD is not set"
+        EXIT_CODE=1
+    fi
+    if [[ -z "${GPG2F_ENCRYPTION_KEY_DERIVATION_CMD}" ]]; then
+        echo "ERROR: GPG2F_ENCRYPTION_KEY_DERIVATION_CMD is not set"
+        EXIT_CODE=1
+    fi
+    if [[ "${#GPG2F_ENCRYPTION_KEY_DERIVATION_CMD[@]}" -eq 0 ]]; then
+        echo "ERROR: GPG2F_ENCRYPTION_KEY_DERIVATION_CMD is not set"
+        EXIT_CODE=1
+    fi
+    if [[ -z "${GPG2F_MIN_DERIVED_KEY_LENGTH?}" ]]; then
+        echo "ERROR: GPG2F_MIN_DERIVED_KEY_LENGTH is not set" >&2
+        EXIT_CODE=1
+    elif [[ ${GPG2F_MIN_DERIVED_KEY_LENGTH?} -lt 10 ]]; then
+        echo "ERROR: GPG2F_MIN_DERIVED_KEY_LENGTH must be at least 10 (current value: ${GPG2F_MIN_DERIVED_KEY_LENGTH?})" >&2
+        EXIT_CODE=1
+    fi
+    if [[ -z "${GPG2F_HASH_DERIVED_KEY_CMD}" ]]; then
+        echo "ERROR: GPG2F_HASH_DERIVED_KEY_CMD is not set"
+        EXIT_CODE=1
+    fi
+    if [[ -z "${GPG2F_NOTIFICATION_CMD}" ]]; then
+        echo "ERROR: GPG2F_NOTIFICATION_CMD is not set"
+        EXIT_CODE=1
+    fi
+    if [[ -z "${GPG2F_DEFAULT_NOTIFICATION_OPTIONS+x}" ]]; then
+        echo "ERROR: GPG2F_DEFAULT_NOTIFICATION_OPTIONS is not set"
+        EXIT_CODE=1
+    fi
+    return "${EXIT_CODE?}"
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Encrypt from stdin
 #-----------------------------------------------------------------------------------------------------------------------
-# $1 ... empty string, "yubikey-slot-1", "yubikey-slot-2" or a file with a GnuPG-encrypted challenge-response hex secret
-# $2 ... empty string or a file with a GnuPG-encrypted static password
-# $3 ... GnuPG base command and common options
-# $4 ... command to to display a "Touch the security key" pop-up notification
-# $5 ... optional: file to read from (when decrypting) or to write to (when encrypting)
+# $1 ... optional: file to encrypt to (instead of stdout)
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_encrypt() {
-    local CHALLENGE=""
-    local RESPONSE=""
-    if [[ -n "$1" ]]; then
-        CHALLENGE=$(gpg2f_generate_random_challenge) || return 1
-        RESPONSE=$(gpg2f_challenge_response "$3" "$4" "$1" "${CHALLENGE}") || return 1
-    fi
-    local STATIC_PASSWORD=""
-    if [[ -n "$2" ]]; then
-        STATIC_PASSWORD=$(gpg2f_get_static_password "$3" "$2") || return 1
-    fi
-    local PASSWORD="${RESPONSE?}${STATIC_PASSWORD?}"
-    if [[ -z "$PASSWORD" ]]; then
-        echo "ERROR: The encryption password is empty" >&2
+    local OUTPUT_FILE="$1"
+    local SEED
+    if ! SEED="$(gpg2f_generate_random_seed)"; then
         return 1
     fi
-    if [[ -n "$5" ]]; then
-        mkdir -p "$(dirname "$5")"
+    local ENCRYPTION_KEY
+    if ! SEED=$(gpg2f_normalize_seed "${SEED?}"); then
+        return 1
     fi
-    if [[ -n "${CHALLENGE}" ]]; then
-        if [[ -n "$5" ]]; then
-            echo "${CHALLENGE?}" >"$5.tmp"
-        else
-            echo "${CHALLENGE?}"
-        fi
-    else
-        echo -n "" >"$5.tmp"
+    if ! ENCRYPTION_KEY=$(gpg2f_derive_encryption_key "${SEED?}" "GPG2F_ENCRYPTION_KEY_DERIVATION_CMD" "${GPG2F_ENCRYPTION_KEY_DERIVATION_CMD[@]}"); then
+        return 1
     fi
-    local EXIT_CODE
-    if [[ -n "$5" ]]; then
-        gpg2f_run_gpg2 "$3" --armor --symmetric --batch --passphrase-fd 3 --output - 3<<<"${PASSWORD?}" >>"$5.tmp"
-        EXIT_CODE=$?
-    else
-        gpg2f_run_gpg2 "$3" --armor --symmetric --batch --passphrase-fd 3 --output - 3<<<"${PASSWORD?}"
-        EXIT_CODE=$?
+    if [[ -n "${OUTPUT_FILE}" ]]; then
+        mkdir -p "$(dirname "${OUTPUT_FILE?}")"
+        exec >"${OUTPUT_FILE?}.tmp"
     fi
-    if [[ ${EXIT_CODE} -ne 0 ]]; then
-        echo "ERROR: Failed to encrypt stdin with gpg2" >&2
-        if [[ -n "$5" ]]; then
-            rm -f "$5.tmp"
+    echo "$SEED"
+    if ! gpg2f_run_gpg "enrypt" --armor --symmetric --batch --passphrase-fd 3 --output - 3<<<"${ENCRYPTION_KEY?}"; then
+        if [[ -n "${OUTPUT_FILE}" ]]; then
+            exec >&1
+            rm -f "${OUTPUT_FILE?}.tmp" 2>/dev/null
         fi
         return 1
     fi
-
-    if [[ -n "$5" ]]; then
-        if ! mv -f "$5.tmp" "$5"; then
-            echo "ERROR: Failed to overwrite \"$5\" with \"$5.tmp\"" >&2
-            rm -f "$5.tmp"
-            return 1
-        elif [[ ! -f "$5" ]]; then
-            echo "ERROR: Failed to overwrite \"$5\"" >&2
-            rm -f "$5.tmp"
+    if [[ -n "${OUTPUT_FILE}" ]]; then
+        exec >&1
+        if ! mv -f "${OUTPUT_FILE?}.tmp" "${OUTPUT_FILE?}"; then
+            echo "ERROR: Failed to rename \"${OUTPUT_FILE?}.tmp\" to \"${OUTPUT_FILE?}\"" >&2
+            rm -f "${OUTPUT_FILE?}.tmp.tmp" 2>/dev/null
             return 1
         fi
     fi
-    return 0
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Decrypt a file to stdout
+# Decrypt to stdout
 #-----------------------------------------------------------------------------------------------------------------------
-# $1 ... empty string, "yubikey-slot-1", "yubikey-slot-2" or a file with a GnuPG-encrypted challenge-response hex secret
-# $2 ... empty string or a file with a GnuPG-encrypted static password
-# $3 ... GnuPG base command and common options
-# $4 ... command to to display a "Touch the security key" pop-up notification
-# $5 ... optional: file to read from (when decrypting) or to write to (when encrypting)
+# $1 ... optional: file to decrypt from (instead of stdin)
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_decrypt() {
-    local FILE_CONTENT
-    if [[ -z "$5" ]]; then
-        FILE_CONTENT="$(cat)"
-    elif [[ ! -f "$5" ]]; then
-        echo "ERROR: File \"$5\" does not exist" >&2
-        return 1
-    else
-        FILE_CONTENT="$(cat "$5")"
-    fi
-    local CHALLENGE=""
-    local RESPONSE=""
     if [[ -n "$1" ]]; then
-        CHALLENGE=$(echo -en "${FILE_CONTENT?}" | head -n 1)
-        if [[ $? -ne 0 || -z "${CHALLENGE?}" ]]; then
-            echo "ERROR: Failed to extract the challenge from \"$5\"" >&2
+        exec <"$1"
+    fi
+    local SEED
+    IFS=$'\n' read -r SEED
+    if ! SEED=$(gpg2f_normalize_seed "${SEED?}"); then
+        exec <&0
+        return 1
+    fi
+    if ! ENCRYPTION_KEY=$(gpg2f_derive_encryption_key "${SEED?}" "GPG2F_DECRYPTION_KEY_DERIVATION_CMD" "${GPG2F_DECRYPTION_KEY_DERIVATION_CMD?}"); then
+        exec <&0
+        return 1
+    fi
+    if ! gpg2f_run_gpg "decrypt" --decrypt --batch --passphrase-fd 3 --output - 3<<<"${ENCRYPTION_KEY?}"; then
+        exec <&0
+        return 1
+    fi
+    exec <&0
+}
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Generate a random seed
+#-----------------------------------------------------------------------------------------------------------------------
+
+function gpg2f_generate_random_seed() {
+    local SEED
+    if ! SEED=$(${GPG2F_GENERATED_SEED_CMD?}); then
+        echo "ERROR: Failed to generate the seed (received an error from \"${GPG2F_GENERATED_SEED_CMD?}\")" >&2
+        return 1
+    elif [[ ${#SEED} -ne ${GPG2F_GENERATED_SEED_EXPECTED_LENGTH?} ]]; then
+        echo "ERROR: Failed to generate the seed (\"${GPG2F_GENERATED_SEED_CMD?}\" generated ${#SEED} instead of ${GPG2F_GENERATED_SEED_EXPECTED_LENGTH?} characters)" >&2
+        return 1
+    fi
+    echo -en "${SEED?}"
+}
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Normalize a seed by removing "\r" and replacing all "\n" with " ". Fails if the normalized seed is empty.
+#-----------------------------------------------------------------------------------------------------------------------
+# $1 ... the seed to normalize
+#-----------------------------------------------------------------------------------------------------------------------
+
+function gpg2f_normalize_seed() {
+    local SEED="$1"
+    SEED="${SEED//$'\r'/}"
+    SEED="${SEED//$'\n'/ }"
+    if [[ -z "${SEED?}" ]]; then
+        echo "ERROR: The normalized seed is empty" >&2
+        return 1
+    fi
+    echo -n "${SEED?}"
+}
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Derive the encryption key. Fails if the derived encrytpion key is empty.
+#-----------------------------------------------------------------------------------------------------------------------
+# $1 ... the seed
+# $2 ... command variable name ("GPG2F_ENCRYPTION_KEY_DERIVATION_CMD" or "GPG2F_DECRYPTION_KEY_DERIVATION_CMD")
+# #* ... the contents/commands of ${$2}
+#-----------------------------------------------------------------------------------------------------------------------
+
+function gpg2f_derive_encryption_key() {
+    local SEED="$1"
+    shift
+    local COMMAND_VARIABLE="$1"
+    shift
+    local CONCATENATED_KEY=""
+    local COMMAND CURRENT_KEY
+    for COMMAND in "$@"; do
+        if [[ -z "${COMMAND?}" ]]; then
+            echo "ERROR: ${COMMAND_VARIABLE?} contains an empty command" >&2
+            return 1
+        elif ! CURRENT_KEY=$(eval ${COMMAND} <<<"${SEED?}"); then
+            echo "ERROR: Failed to derive the key (\"${COMMAND?}\" returned an error)" >&2
+            return 1
+        elif ! gpg2f_validate_and_hash_derived_key "${CURRENT_KEY?}" "derived encryption key returned by \"${COMMAND?}\""; then
             return 1
         fi
-        RESPONSE=$(gpg2f_challenge_response "$3" "$4" "$1" "${CHALLENGE}") || return 1
-    fi
-    local STATIC_PASSWORD=""
-    if [[ -n "$2" ]]; then
-        STATIC_PASSWORD=$(gpg2f_get_static_password "$3" "$2") || return 1
-    fi
-    local PASSWORD="${RESPONSE?}${STATIC_PASSWORD?}"
-    if [[ -z "$PASSWORD" ]]; then
-        echo "ERROR: The encryption password is empty" >&2
-        return 1
-    fi
-    local TAIL_OPTION=
-    if [[ -z "${CHALLENGE?}" ]]; then
-        TAIL_OPTION=+1
-    else
-        TAIL_OPTION=+2
-    fi
-    local DECRYPTED_CONTENT
-    if ! DECRYPTED_CONTENT=$(echo -en "${FILE_CONTENT?}" | tail -n "${TAIL_OPTION?}" | gpg2f_run_gpg2 "$3" --decrypt --batch --passphrase-fd 3 --output - 3<<<"${PASSWORD?}"); then
-        echo "ERROR: Failed to decrypt \"$5\" with gpg2" >&2
-        return 1
-    fi
-    echo -en "${DECRYPTED_CONTENT?}"
-    return 0
-}
-
-#-----------------------------------------------------------------------------------------------------------------------
-# Generate a random hex challenge with openssl
-#-----------------------------------------------------------------------------------------------------------------------
-
-function gpg2f_generate_random_challenge() {
-    local CHALLENGE
-    CHALLENGE=$(openssl rand -hex 63)
-    if [[ $? -eq 0 && ${#CHALLENGE} -eq 126 ]]; then
-        echo -en "${CHALLENGE?}"
-        return 0
-    else
-        echo "ERROR: Failed to generate a random challenge via \"openssl rand -hex 64\"" >&2
+        CONCATENATED_KEY="${CONCATENATED_KEY?}${CURRENT_KEY?}"
+    done
+    if ! gpg2f_validate_and_hash_derived_key "${CONCATENATED_KEY?}" "concatenated derived encryption key"; then
         return 1
     fi
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Calculate the response for a challenge
+# Check the length of a derived key, hash it, check the lenght of the hashed key and print it.
 #-----------------------------------------------------------------------------------------------------------------------
-# $1 ... GnuPG base command and common options
-# $2 ... command to to display a "Touch the security key" pop-up notification
-# $3 ... "yubikey-slot-1", "yubikey-slot-2" or a file with a GnuPG-encrypted challenge-response hex secret
-# $4 ... challenge
+# $1 ... the key
+# $2 ... description (e.g. "concatenated key" or "key generated by [command]")
 #-----------------------------------------------------------------------------------------------------------------------
 
-function gpg2f_challenge_response() {
-    if [[ "$3" == "yubikey-slot-1" ]]; then
-        gpg2f_challenge_response_yubikey "$2" 1 "$4"
-        return $?
-    elif [[ "$3" == "yubikey-slot-2" ]]; then
-        gpg2f_challenge_response_yubikey "$2" 2 "$4"
-        return $?
-    else
-        gpg2f_challenge_response_openssl "$1" "$3" "$4"
-        return $?
-    fi
-}
-
-#-----------------------------------------------------------------------------------------------------------------------
-# Perform a challenge-response using a Yubikey
-#-----------------------------------------------------------------------------------------------------------------------
-# $1 ... command to to display a "Touch the security key" pop-up notification
-# $2 ... yubikey slot (1 or 2)
-# $3 ... challenge
-#-----------------------------------------------------------------------------------------------------------------------
-
-function gpg2f_challenge_response_yubikey() {
-    local RESPONSE EXIT_CODE
-    if [[ -n "$1" ]]; then
-        exec 3> >($1 "Touch the YubiKey (challenge-response)")
-    fi
-    RESPONSE="$(ykman otp calculate "$2" "$3" | head -n 1 | sed 's/[\r\n]//g')"
-    EXIT_CODE=$?
-    if [[ -n "$1" ]]; then
-        exec 3>&-
-    fi
-    if [[ ${EXIT_CODE?} -eq 0 && -n "${RESPONSE}" ]]; then
-        echo -n "${RESPONSE?}"
-        return 0
-    else
-        echo "ERROR: Failed to run \"ykman otp calculate $2 [challenge]\"" >&2
+function gpg2f_validate_and_hash_derived_key() {
+    local KEY=$1
+    local KEY_NAME=$2
+    if [[ -z "${#KEY}" || ${#KEY} -lt ${GPG2F_MIN_DERIVED_KEY_LENGTH?} ]]; then
+        echo "ERROR: The ${KEY_NAME?} is too short (${#KEY} characters instead of ${GPG2F_MIN_DERIVED_KEY_LENGTH?})" >&2
         return 1
     fi
-}
-
-#-----------------------------------------------------------------------------------------------------------------------
-# Perform a challenge-response using openssl with a GnuPG-encrypted secret
-#-----------------------------------------------------------------------------------------------------------------------
-# $1 ... GnuPG base command and common options
-# $2 ... file with a GnuPG-encrypted challenge-response hex secret
-# $3 ... challenge
-#-----------------------------------------------------------------------------------------------------------------------
-
-function gpg2f_challenge_response_openssl() {
-    if [[ ! -f "$2" ]]; then
-        echo "ERROR: File \"$2\" does not exist" >&2
+    local HASHED_KEY
+    if ! HASHED_KEY=$(${GPG2F_HASH_DERIVED_KEY_CMD?} <<<"${KEY?}"); then
+        echo "ERROR: Failed to hash the ${KEY_NAME?} (\"${GPG2F_HASH_DERIVED_KEY_CMD?}\" returned an error)" >&2
+        return 1
+    elif [[ -z "${#HASHED_KEY}" || ${#HASHED_KEY} -lt ${GPG2F_MIN_DERIVED_KEY_LENGTH?} ]]; then
+        echo "ERROR: The hash of the ${KEY_NAME?} is too short (${#HASHED_KEY} characters instead of ${GPG2F_MIN_DERIVED_KEY_LENGTH?})" >&2
         return 1
     fi
-    local SECRET
-    SECRET=$(gpg2f_run_gpg2 "$1" --batch -qd "$2")
-    if [[ $? -ne 0 || -z "${SECRET?}" ]]; then
-        echo "ERROR: Failed to retrive the secret from \"$2\"" >&2
-        return 1
-    fi
-    local RESPONSE
-    RESPONSE=$(echo -n "$3" | xxd -r -p | openssl dgst -sha1 -mac HMAC -macopt "hexkey:${SECRET?}" -hex | sed 's/.*= *//')
-    if [[ $? -ne 0 || -z "${SECRET?}" ]]; then
-        echo "ERROR: Failed to run: echo -n \"[challenge]\" | xxd -r -p | openssl dgst -sha1 -mac HMAC -macopt \"hexkey:[secret]\" -hex | sed 's/.*= *//'" >&2
-        return 1
-    fi
-    echo -n "${RESPONSE?}"
-    return 0
-}
-
-#-----------------------------------------------------------------------------------------------------------------------
-# Decrypt the static password
-#-----------------------------------------------------------------------------------------------------------------------
-# $1 ... GnuPG base command and common options
-# $2 ... GnuPG-encrypted file with a static password
-#-----------------------------------------------------------------------------------------------------------------------
-
-function gpg2f_get_static_password() {
-    if [[ -f "$2" ]]; then
-        local FILE_CONTENT
-        if ! FILE_CONTENT=$(gpg2f_run_gpg2 "$1" --batch -qd "$2"); then
-            echo "ERROR: Failed to decrypt \"$2\" with gpg2" 1>&2
-            return 1
-        fi
-        local TRIMMED_CONTENT
-        TRIMMED_CONTENT=$(echo -en "${FILE_CONTENT}" | sed 's/^[ \t]+//;s/[ \t\r]*$//' | grep -v '^$')
-        if [[ $? -ne 0 || -z "${TRIMMED_CONTENT?}" ]]; then
-            echo "ERROR: Failed to decrypt \"$2\" - the file is empty or only contains whitespace" >&2
-            return 1
-        elif [[ $(echo -en "${TRIMMED_CONTENT?}" | wc -l) -ge 2 ]]; then
-            echo "ERROR: Failed to decrypt the static password - \"$2\" contains multiple lines of text" >&2
-            return 1
-        fi
-        local PASSWORD
-        PASSWORD=$(echo -en "${TRIMMED_CONTENT}" | head -n 1)
-        if [[ $? -ne 0 || -z "${PASSWORD?}" ]]; then
-            echo "ERROR: Failed to decrypt the static password - \"$2\" is empty or only contains whitespace" >&2
-            return 1
-        fi
-        echo -ne "${PASSWORD?}"
-        return 0
-    else
-        echo "ERROR: Failed to decrypt the static password - \"$2\" is not a file" >&2
-        return 1
-    fi
+    echo -n "${HASHED_KEY?}"
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Run GnuPG
 #-----------------------------------------------------------------------------------------------------------------------
-# $@ ... GnuPG command with options
-# $* ... arguments to pass on to GnuPG
+# $1 ... operation description "encrypt" or "decrypt"
+# $* ... pass-through GnuPG arguments
 #-----------------------------------------------------------------------------------------------------------------------
 
-function gpg2f_run_gpg2() {
-    local GPG_COMMAND="$1"
+function gpg2f_run_gpg() {
+    local ENCRYPT_OR_DECRYPT="$1"
     shift
+    local COMMAND_PREFIX=()
     case "$(uname -s)" in
     CYGWIN*)
         if [[ -n "$HOME" ]]; then
-            # shellcheck disable=SC2086
-            env HOME="$(cygpath "${HOME?}")" ${GPG_COMMAND?} "$@"
-            return $?
+            COMMAND_PREFIX=(env HOME="$(cygpath "${HOME?}")")
         fi
         ;;
     esac
-    ${GPG_COMMAND?} "$@"
-    return $?
-}
-
-#-----------------------------------------------------------------------------------------------------------------------
-# Unset all functions from this file (in case we're source'd)
-#-----------------------------------------------------------------------------------------------------------------------
-
-function gpg2f_unset() {
-    local FUNCTIONS=(
-        gpg2f_help
-        gpg2f_main
-        gpg2f_encrypt
-        gpg2f_decrypt
-        gpg2f_generate_random_challenge
-        gpg2f_challenge_response
-        gpg2f_challenge_response_yubikey
-        gpg2f_challenge_response_openssl
-        gpg2f_get_static_password
-        gpg2f_run_gpg2
-        gpg2f_unset
-    )
-    unset "${FUNCTIONS?}"
+    # shellcheck disable=SC2086
+    if "${COMMAND_PREFIX[@]}" ${GPG2F_GPG_CMD?} "$@"; then
+        return 0
+    else
+        echo "ERROR: Failed to ${ENCRYPT_OR_DECRYPT?} the content (\"${GPG2F_GPG_CMD?} $*\" returned an error)" >&2
+        return 1
+    fi
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Run the application
 #-----------------------------------------------------------------------------------------------------------------------
 
-# shellcheck disable=SC2317
-if gpg2f_main "$@"; then
-    gpg2f_unset
-    return 0 2>/dev/null || exit 0
-else
-    gpg2f_unset
-    gpg2f_unset
-    return 1 2>/dev/null || exit 1
-fi
+gpg2f_run_and_unset "$@"
