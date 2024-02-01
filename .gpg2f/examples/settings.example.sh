@@ -47,20 +47,23 @@ export GPG2F_ENCRYPTION_KEY_DERIVATION_CMD=("${GPG2F_DECRYPTION_KEY_DERIVATION_C
 export GPG2F_MIN_DERIVED_KEY_LENGTH=20
 
 #-----------------------------------------------------------------------------------------------------------------------
+# A command to hash a derived key. Each key is hashed individually. The hashes are then concatenated and the result is
+# hashed into the final encryption key. encryption_key = hash(hash(derived_key1) + hash(derived_key2) + ...)
+#-----------------------------------------------------------------------------------------------------------------------
+# cat ................................................. don not hash (use concatenated derived keys directly)
+# . .gpg2f/scripts/calculate-hash/openssl-sha512.sh ... generate SHA-512 via OpenSSL
+#-----------------------------------------------------------------------------------------------------------------------
+
+export GPG2F_HASH_DERIVED_DECRYPTION_KEY_CMD=". .gpg2f/scripts/calculate-hash/openssl-sha512.sh"
+export GPG2F_HASH_DERIVED_ENCRYPTION_KEY_CMD="${GPG2F_HASH_DERIVED_DECRYPTION_KEY_CMD?}"
+
+#-----------------------------------------------------------------------------------------------------------------------
 # A command that generates a random seed and prints it to stdout. The expected string length is used to verify that the
 # seed has the correct length (to pretect against any malfunction of the seed generator command).
 #-----------------------------------------------------------------------------------------------------------------------
 
 export GPG2F_GENERATED_SEED_CMD=". .gpg2f/scripts/generate-seed/openssl-hex.sh 63"
 export GPG2F_GENERATED_SEED_EXPECTED_LENGTH="126"
-
-#-----------------------------------------------------------------------------------------------------------------------
-# A command to hash a derived key.
-#-----------------------------------------------------------------------------------------------------------------------
-# . .gpg2f/scripts/calculate-hash/disabled.sh ... do not has the key
-#-----------------------------------------------------------------------------------------------------------------------
-
-export GPG2F_HASH_DERIVED_KEY_CMD=". .gpg2f/scripts/calculate-hash/openssl-sha512.sh"
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Command to display GUI pop-up notifications
