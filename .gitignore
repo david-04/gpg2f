@@ -1,0 +1,5 @@
+/.gpg2f/docs
+/.gpg2f/runtime/show-notification/java/*.class
+/CHANGELOG.md
+/passwordstore
+/README.md
