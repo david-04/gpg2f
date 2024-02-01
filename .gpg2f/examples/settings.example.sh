@@ -39,7 +39,7 @@ export GPG2F_GPG_CMD="gpg2 --quiet --no-permission-warning --batch --cipher-algo
 #-----------------------------------------------------------------------------------------------------------------------
 
 export GPG2F_DECRYPTION_KEY_DERIVATION_CMD=(
-    "NOTIFICATION_OPTIONS='a b c' with-notification 'Touch the YubiKey' . .gpg2f/runtime/derive-key/yubikey-challenge-response.sh 2"
+    "NOTIFICATION_OPTIONS='a b c' with-notification 'Touch the YubiKey' . .gpg2f/scripts/derive-key/yubikey-challenge-response.sh 2"
 )
 
 export GPG2F_ENCRYPTION_KEY_DERIVATION_CMD=("${GPG2F_DECRYPTION_KEY_DERIVATION_CMD[@]}")
@@ -51,26 +51,26 @@ export GPG2F_MIN_DERIVED_KEY_LENGTH=20
 # seed has the correct length (to pretect against any malfunction of the seed generator command).
 #-----------------------------------------------------------------------------------------------------------------------
 
-export GPG2F_GENERATED_SEED_CMD=". .gpg2f/runtime/generate-seed/openssl-hex.sh 63"
+export GPG2F_GENERATED_SEED_CMD=". .gpg2f/scripts/generate-seed/openssl-hex.sh 63"
 export GPG2F_GENERATED_SEED_EXPECTED_LENGTH="126"
 
 #-----------------------------------------------------------------------------------------------------------------------
 # A command to hash a derived key.
 #-----------------------------------------------------------------------------------------------------------------------
-# . .gpg2f/runtime/hash-derived-key/disabled.sh ... do not has the key
+# . .gpg2f/scripts/calculate-hash/disabled.sh ... do not has the key
 #-----------------------------------------------------------------------------------------------------------------------
 
-export GPG2F_HASH_DERIVED_KEY_CMD=". .gpg2f/runtime/hash-derived-key/openssl-sha512.sh"
+export GPG2F_HASH_DERIVED_KEY_CMD=". .gpg2f/scripts/calculate-hash/openssl-sha512.sh"
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Command to display GUI pop-up notifications
 #-----------------------------------------------------------------------------------------------------------------------
-# .gpg2f/runtime/show-notification/auto.sh ......... automatically pick an option
-# .gpg2f/runtime/show-notification/java.sh ......... use Java to display a window
-# .gpg2f/runtime/show-notification/powershell.sh ... use PowerShell to display a balloon tip/pop-up
+# .gpg2f/scripts/show-notification/auto.sh ......... automatically pick an option
+# .gpg2f/scripts/show-notification/java.sh ......... use Java to display a window
+# .gpg2f/scripts/show-notification/powershell.sh ... use PowerShell to display a balloon tip/pop-up
 #-----------------------------------------------------------------------------------------------------------------------
 
-export GPG2F_NOTIFICATION_CMD=". .gpg2f/runtime/show-notification/auto.sh"
+export GPG2F_NOTIFICATION_CMD=". .gpg2f/scripts/show-notification/auto.sh"
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Notification options are specific to the notifier. The PowerShell notifier ignores all options. Java supports the

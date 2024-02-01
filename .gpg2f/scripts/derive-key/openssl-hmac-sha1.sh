@@ -17,8 +17,8 @@ function gpg2f_challenge_response_openssl() {
     fi
     local SECRET
     # shellcheck disable=SC1091
-    if ! SECRET=$(. .gpg2/runtime/gpg/decrypt "$1"); then
-        echo "ERROR: Failed to decrypt \"$1\" (\". .gpg2/runtime/gpg/decrypt $1\" returned an error)" >&2
+    if ! SECRET=$(. .gpg2/scripts/gpg/decrypt "$1"); then
+        echo "ERROR: Failed to decrypt \"$1\" (\". .gpg2/scripts/gpg/decrypt $1\" returned an error)" >&2
         return 1
     fi
     SECRET="${SECRET//$'\r'/}"
