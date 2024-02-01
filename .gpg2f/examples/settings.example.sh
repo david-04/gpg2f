@@ -2,7 +2,7 @@
 # Base command for invoking GnuPG.
 #-----------------------------------------------------------------------------------------------------------------------
 
-export GPG2F_GPG_CMD="gpg2 --quiet --no-permission-warning --batch"
+export GPG2F_GPG_CMD="gpg2 --quiet --no-permission-warning --batch --cipher-algo AES256"
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Commands to derive the encryption key. Each command works as follows:
@@ -39,7 +39,7 @@ export GPG2F_GPG_CMD="gpg2 --quiet --no-permission-warning --batch"
 #-----------------------------------------------------------------------------------------------------------------------
 
 export GPG2F_DECRYPTION_KEY_DERIVATION_CMD=(
-    "NOTIFICATION='test notification' . .gpg2f/runtime/derive-key/yubikey-challenge-response.sh 2"
+    "NOTIFICATION_OPTIONS='a b c' with-notification 'Touch the YubiKey' . .gpg2f/runtime/derive-key/yubikey-challenge-response.sh 2"
 )
 
 export GPG2F_ENCRYPTION_KEY_DERIVATION_CMD=("${GPG2F_DECRYPTION_KEY_DERIVATION_CMD[@]}")
@@ -60,7 +60,7 @@ export GPG2F_GENERATED_SEED_EXPECTED_LENGTH="126"
 # . .gpg2f/runtime/hash-derived-key/disabled.sh ... do not has the key
 #-----------------------------------------------------------------------------------------------------------------------
 
-export GPG2F_HASH_DERIVED_KEY_CMD=". .gpg2f/runtime/hash-derived-key/disabled.sh"
+export GPG2F_HASH_DERIVED_KEY_CMD=". .gpg2f/runtime/hash-derived-key/openssl-sha512.sh"
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Command to display GUI pop-up notifications

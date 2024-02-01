@@ -1,11 +1,4 @@
---batch -qd
-
-gpg2 --quiet --no-permission-warning --symmetric --batch
-
-# encrypt
-# echo abc | gpg2 --quiet --no-permission-warning --symmetric --armor
-# decrypt
-#  cat x.gpg | gpg2 --quiet --no-permission-warning -d
+#!/usr/bin/env bash
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Decrypt stdin or a file to stdout
@@ -30,8 +23,8 @@ function gpg2f_run_decrypt_with_gpg2() {
         fi
         ;;
     esac
-    # shellcheck disable=SC2086
-    if ! "${COMMAND_PREFIX[@]}" ${GPG2F_GPG_CMD?} -d "$@"; then
+    # shellcheck disable=SC2086,SC2046
+    if ! "${COMMAND_PREFIX[@]}" $(eval "${GPG2F_GPG_CMD?}") -d "$@"; then
         if [[ -n "${INPUT_FILE?}" ]]; then
             echo "ERROR: Failed to decrypt \"${INPUT_FILE?}\" (\"" "${COMMAND_PREFIX[@]}" "${GPG2F_GPG_CMD?} -d ${INPUT_FILE?}\" returned an error)" >&2
         else

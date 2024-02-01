@@ -197,6 +197,8 @@ function gpg2f_encrypt() {
         mkdir -p "$(dirname "${OUTPUT_FILE?}")"
         exec >"${OUTPUT_FILE?}.tmp"
     fi
+    echo "SEED           = ${SEED}" >&2
+    echo "ENCRYPTION_KEY = ${ENCRYPTION_KEY}" >&2
     echo "$SEED"
     if ! gpg2f_run_gpg "enrypt" --armor --symmetric --batch --passphrase-fd 3 --output - 3<<<"${ENCRYPTION_KEY?}"; then
         if [[ -n "${OUTPUT_FILE}" ]]; then
@@ -294,7 +296,11 @@ function gpg2f_derive_encryption_key() {
         if [[ -z "${COMMAND?}" ]]; then
             echo "ERROR: ${COMMAND_VARIABLE?} contains an empty command" >&2
             return 1
-        elif ! CURRENT_KEY=$(eval ${COMMAND} <<<"${SEED?}"); then
+        elif ! CURRENT_KEY=$(
+            exec <<<"${SEED?}"
+            eval ${COMMAND}
+            exec <&0
+        ); then
             echo "ERROR: Failed to derive the key (\"${COMMAND?}\" returned an error)" >&2
             return 1
         elif ! gpg2f_validate_and_hash_derived_key "${CURRENT_KEY?}" "derived encryption key returned by \"${COMMAND?}\""; then
@@ -357,6 +363,33 @@ function gpg2f_run_gpg() {
         echo "ERROR: Failed to ${ENCRYPT_OR_DECRYPT?} the content (\"${GPG2F_GPG_CMD?} $*\" returned an error)" >&2
         return 1
     fi
+}
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Run a command with a pop-up notification
+#-----------------------------------------------------------------------------------------------------------------------
+# $1 ... the notification message
+# $* ... pass-through command to execute
+#-----------------------------------------------------------------------------------------------------------------------
+
+function with-notification() {
+    local MESSAGE="$1"
+    shift
+    local EXIT_CODE=0
+    local PID=""
+    if [[ -n "${MESSAGE?}" ]]; then
+        exec 3> >(eval "${GPG2F_NOTIFICATION_CMD}" "${MESSAGE?}")
+        PID=$!
+    fi
+    "$@"
+    EXIT_CODE=$?
+    if [[ -n "${MESSAGE?}" ]]; then
+        exec 3>&-
+    fi
+    if [[ -n "${PID?}" ]]; then
+        kill ${PID?} >/dev/null 2>&1
+    fi
+    return ${EXIT_CODE?}
 }
 
 #-----------------------------------------------------------------------------------------------------------------------

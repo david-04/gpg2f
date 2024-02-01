@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-java -cp .gpg2f/runtime/notifications PopUpWindow "$*"
+java -cp .gpg2f/runtime/show-notification/java PopUpWindow "$*"
