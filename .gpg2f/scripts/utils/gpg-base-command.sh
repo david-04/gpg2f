@@ -9,7 +9,7 @@
 function gpg2f_gpg_base_command() {
 
     # load the configuration (if not already present)
-    if [[ -z "${GPG2F_GPG_CMD}" ]]; then
+    if [[ -z "${GPG2F_GPG_CMD[*]}" ]]; then
         if [[ ! -f ".gpg2f/scripts/utils/load-and-validate-config.sh" ]]; then
             echo "ERROR: $(pwd)/.gpg2f/scripts/utils/load-and-validate-config.sh does not exist" >&2
             return 1
@@ -30,8 +30,7 @@ function gpg2f_gpg_base_command() {
     esac
 
     # assemle and execute the command
-    # shellcheck disable=SC2206
-    local COMMAND=("${SET_HOME_ENV_VARIABLE[@]}" ${GPG2F_GPG_CMD?} "$@")
+    local COMMAND=("${SET_HOME_ENV_VARIABLE[@]}" "${GPG2F_GPG_CMD[@]}" "$@")
     if ! "${COMMAND[@]}"; then
         echo "ERROR: Command \"${COMMAND[*]})\" returned an error" >&2
         return 1

@@ -41,10 +41,9 @@ function gpg2f_challenge_response_openssl() {
     fi
 
     # calculate the response
-    local COMMAND=(xxd -r -p "|" openssl dgst -sha1 -mac HMAC -macopt "hexkey:${SECRET?}" -hex "|" sed 's/.*= *//')
     local RESPONSE
-    if ! RESPONSE=$("${COMMAND[@]}"); then
-        echo "ERROR: Command \"${COMMAND[*]?}\" returned an error" >&2
+    if ! RESPONSE=$(xxd -r -p | openssl dgst -sha1 -mac HMAC -macopt "hexkey:${SECRET?}" -hex | sed 's/.*= *//'); then
+        echo "ERROR: Command \"xxd -r -p | openssl dgst -sha1 -mac HMAC -macopt hexkey:\${SECRET?} -hex | sed 's/.*= *//'\" returned an error" >&2
         return 1
     fi
 
@@ -52,7 +51,7 @@ function gpg2f_challenge_response_openssl() {
     RESPONSE="${RESPONSE//$'\r'/}"
     RESPONSE="${RESPONSE//$'\n'/}"
     if [[ -z "${RESPONSE?}" ]]; then
-        echo "ERROR: Command \"${COMMAND[*]?}\" returned an empty string" >&2
+        echo "ERROR: Command \"xxd -r -p | openssl dgst -sha1 -mac HMAC -macopt hexkey:\${SECRET?} -hex | sed 's/.*= *//'\" returned an empty string" >&2
         return 1
     fi
 

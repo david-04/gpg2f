@@ -117,8 +117,7 @@ function gpg2f_encrypt() {
         exec >"${OUTPUT_FILE?}.tmp"
     fi
     echo "$SEED"
-    # shellcheck disable=SC2086
-    if ! gpg2f_run_gpg "enrypt" ${GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS?} --passphrase-fd 3 --output - 3<<<"${ENCRYPTION_KEY?}"; then
+    if ! gpg2f_run_gpg "enrypt" "${GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS[@]}" --passphrase-fd 3 --output - 3<<<"${ENCRYPTION_KEY?}"; then
         if [[ -n "${OUTPUT_FILE}" ]]; then
             exec >&1
             rm -f "${OUTPUT_FILE?}.tmp" 2>/dev/null
@@ -173,8 +172,7 @@ function gpg2f_decrypt() {
     gpg2f_debug "Decrypting"
     gpg2f_debug "- seed: <${SEED?}>"
     gpg2f_debug "- encryption key: <${ENCRYPTION_KEY?}>"
-    # shellcheck disable=SC2086
-    gpg2f_run_gpg "decrypt" ${GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS?} --passphrase-fd 3 --output - 3<<<"${ENCRYPTION_KEY?}"
+    gpg2f_run_gpg "decrypt" "${GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS[@]}" --passphrase-fd 3 --output - 3<<<"${ENCRYPTION_KEY?}"
     local EXIT_CODE=$?
     exec <&0
     return ${EXIT_CODE}
@@ -339,8 +337,7 @@ function gpg2f_run_gpg() {
         fi
         ;;
     esac
-    # shellcheck disable=SC2206
-    local COMMAND=("${COMMAND_PREFIX[@]}" ${GPG2F_GPG_CMD?} "$@")
+    local COMMAND=("${COMMAND_PREFIX[@]}" "${GPG2F_GPG_CMD[@]}" "$@")
     gpg2f_debug "- command:" "${COMMAND[@]}"
     if "${COMMAND[@]}"; then
         return 0

@@ -7,11 +7,11 @@
 # GPG2F_GPG_DECRYPTION_OPTIONS .............. additional options/parameters when decrypting
 #-----------------------------------------------------------------------------------------------------------------------
 
-export GPG2F_GPG_CMD="gpg2 --quiet --no-permission-warning --batch"
+export GPG2F_GPG_CMD=(gpg2 --quiet --no-permission-warning --batch)
 
-export GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS="--armor --symmetric --cipher-algo AES256 "
-export GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS="--armor "
-export GPG2F_GPG_DECRYPTION_OPTIONS="--decrypt"
+export GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS=(--armor --symmetric --cipher-algo AES256)
+export GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS=(--armor)
+export GPG2F_GPG_DECRYPTION_OPTIONS=(--decrypt)
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Random seed generation

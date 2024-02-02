@@ -34,19 +34,19 @@ function gpg2f_load_config() {
 
 function gpg2f_validate_config() {
     local EXIT_CODE=0
-    if [[ -z "${GPG2F_GPG_CMD}" ]]; then
+    if [[ -z "${GPG2F_GPG_CMD[*]}" ]]; then
         echo "ERROR: GPG2F_GPG_CMD is not set"
         EXIT_CODE=1
     fi
-    if [[ -z "${GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS+x}" ]]; then
+    if [[ ! "$(declare -p GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS)" =~ "declare -a" ]]; then
         echo "ERROR: GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS is not set"
         EXIT_CODE=1
     fi
-    if [[ -z "${GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS+x}" ]]; then
+    if [[ ! "$(declare -p GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS)" =~ "declare -a" ]]; then
         echo "ERROR: GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS is not set"
         EXIT_CODE=1
     fi
-    if [[ -z "${GPG2F_GPG_DECRYPTION_OPTIONS+x}" ]]; then
+    if [[ ! "$(declare -p GPG2F_GPG_DECRYPTION_OPTIONS)" =~ "declare -a" ]]; then
         echo "ERROR: GPG2F_GPG_DECRYPTION_OPTIONS is not set"
         EXIT_CODE=1
     fi
