@@ -67,7 +67,7 @@ export GPG2F_GENERATED_SEED_EXPECTED_LENGTH="126"
 #-----------------------------------------------------------------------------------------------------------------------
 
 export GPG2F_DECRYPTION_KEY_DERIVATION_CMD=(
-    "NOTIFICATION_OPTIONS='option1=true option2=false' with-notification 'Touch the YubiKey' . .gpg2f/scripts/derive-key/yubikey-challenge-response.sh 2"
+    "NOTIFICATION_OPTIONS='delay=1s' with-notification 'Touch the YubiKey' . .gpg2f/scripts/derive-key/yubikey-challenge-response.sh 2"
     ".gpg2f/scripts/gpg/decrypt-file-to-stdout.sh .gpg2f/examples/keys/static-password.example.gpg"
 )
 

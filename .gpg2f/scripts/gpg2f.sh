@@ -381,7 +381,13 @@ function with-notification() {
     local EXIT_CODE=0
     local PID=""
     if [[ -n "${MESSAGE?}" ]]; then
-        exec 3> >(eval "${GPG2F_NOTIFICATION_CMD}" "${MESSAGE?}")
+        exec 3> >(
+            local DELAY
+            if DELAY=$(gpg2f_get_notification_delay); then
+                sleep "${DELAY?}"
+            fi
+            eval "${GPG2F_NOTIFICATION_CMD}" "${MESSAGE?}"
+        )
         PID=$!
     fi
     "$@"
@@ -396,16 +402,29 @@ function with-notification() {
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
+# Get the configured notification delay
+#-----------------------------------------------------------------------------------------------------------------------
+
+function gpg2f_get_notification_delay() {
+    local OPTION
+    for OPTION in ${NOTIFICATION_OPTIONS} ${GPG2F_DEFAULT_NOTIFICATION_OPTIONS?}; do
+        if [[ "${OPTION?}" =~ "delay=" ]]; then
+            echo "${OPTION//delay=/}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+#-----------------------------------------------------------------------------------------------------------------------
 # Run the application and unset all functions and variables
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_run_and_unset() {
     local FUNCTIONS_TO_UNSET=(
-        gpg2f_run_and_unset
         gpg2f_main
         gpg2f_display_syntax_help
         gpg2f_display_version_and_copyright
-        gpg2f_validate_configuration
         gpg2f_encrypt
         gpg2f_decrypt
         gpg2f_generate_random_seed
@@ -413,6 +432,11 @@ function gpg2f_run_and_unset() {
         gpg2f_derive_encryption_key
         gpg2f_validate_and_hash_derived_key
         gpg2f_run_gpg
+        gpg2f_remove_line_breaks
+        gpg2f_debug
+        with-notification
+        gpg2f_get_notification_delay
+        gpg2f_run_and_unset
     )
     local CONFIG_VARIABLES_TO_UNSET=(
         GPG2F_GPG_CMD
