@@ -32,7 +32,7 @@ function gpg2f_gpg_base_command() {
     # assemle and execute the command
     local COMMAND=("${SET_HOME_ENV_VARIABLE[@]}" "${GPG2F_GPG_CMD[@]}" "$@")
     if ! "${COMMAND[@]}"; then
-        echo "ERROR: Command \"${COMMAND[*]})\" returned an error" >&2
+        echo "ERROR: Command \"${COMMAND[*]}\" returned an error" >&2
         return 1
     fi
 }

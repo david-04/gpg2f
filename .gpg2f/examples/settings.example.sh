@@ -26,8 +26,8 @@ export GPG2F_GPG_DECRYPTION_OPTIONS=(--decrypt)
 # seed has the correct length (to pretect against any malfunction of the seed generator command).
 #-----------------------------------------------------------------------------------------------------------------------
 
-export GPG2F_GENERATE_SEED_CMD=". .gpg2f/scripts/generate-seed/openssl-hex.sh 63"
-export GPG2F_GENERATED_SEED_EXPECTED_LENGTH="126"
+export GPG2F_GENERATE_SEED_CMD=(. .gpg2f/scripts/generate-seed/openssl-hex.sh 63)
+export GPG2F_GENERATED_SEED_EXPECTED_LENGTH=126
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Derive the encryption key(s)
@@ -58,7 +58,7 @@ export GPG2F_GENERATED_SEED_EXPECTED_LENGTH="126"
 #
 #   "NOTIFICATION_OPTIONS='delay=1s timeout=5s' . with-notification 'Please touch the YubiKey' [...]"
 #
-# GPG2F_ENCRYPTION_KEY_DERIVATION_CMD is usually the same as GPG2F_DECRYPTION_KEY_DERIVATION_CMD. They only need to be
+# GPG2F_DERIVE_ENCRYPTION_KEY_CMD is usually the same as GPG2F_DERIVE_DECRYPTION_KEY_CMD. They only need to be
 # different while rotation keys or changing the key derivation algorithms.
 #
 # GPG2F_MIN_DERIVED_KEY_LENGTH specifies the minimum length of each key (individually). This length requirement must be
@@ -66,17 +66,17 @@ export GPG2F_GENERATED_SEED_EXPECTED_LENGTH="126"
 # scripts generate keys that are too short/unsecure.
 #-----------------------------------------------------------------------------------------------------------------------
 
-export GPG2F_DECRYPTION_KEY_DERIVATION_CMD=(
-    "NOTIFICATION_OPTIONS='delay=1s' with-notification 'Touch the YubiKey' . .gpg2f/scripts/derive-key/yubikey-challenge-response.sh 2"
+export GPG2F_DERIVE_DECRYPTION_KEY_CMD=(
+    "NOTIFICATION_OPTIONS='delay~=1s' with-notification 'Touch the YubiKey' . .gpg2f/scripts/derive-key/yubikey-challenge-response.sh 2"
     ".gpg2f/scripts/gpg/decrypt-file-to-stdout.sh .gpg2f/examples/keys/static-password.example.gpg"
 )
 
-export GPG2F_ENCRYPTION_KEY_DERIVATION_CMD=("${GPG2F_DECRYPTION_KEY_DERIVATION_CMD[@]}")
+export GPG2F_DERIVE_ENCRYPTION_KEY_CMD=("${GPG2F_DERIVE_DECRYPTION_KEY_CMD[@]}")
 
-export GPG2F_ENCRYPTION_KEY_DERIVATION_CMD=(
-    ". .gpg2f/scripts/derive-key/openssl-hmac-sha1.sh .gpg2f/examples/keys/hmac-sha1-secret.example.gpg"
-    ".gpg2f/scripts/gpg/decrypt-file-to-stdout.sh .gpg2f/examples/keys/static-password.example.gpg"
-)
+# export GPG2F_DERIVE_ENCRYPTION_KEY_CMD=(
+#     ". .gpg2f/scripts/derive-key/openssl-hmac-sha1.sh .gpg2f/examples/keys/hmac-sha1-secret.example.gpg"
+#     ".gpg2f/scripts/gpg/decrypt-file-to-stdout.sh .gpg2f/examples/keys/static-password.example.gpg"
+# )
 
 export GPG2F_MIN_DERIVED_KEY_LENGTH=20
 
@@ -88,8 +88,8 @@ export GPG2F_MIN_DERIVED_KEY_LENGTH=20
 # . .gpg2f/scripts/calculate-hash/openssl-sha512.sh ... generate SHA-512 via OpenSSL
 #-----------------------------------------------------------------------------------------------------------------------
 
-export GPG2F_HASH_DERIVED_DECRYPTION_KEY_CMD=". .gpg2f/scripts/calculate-hash/openssl-sha256.sh"
-export GPG2F_HASH_DERIVED_ENCRYPTION_KEY_CMD="${GPG2F_HASH_DERIVED_DECRYPTION_KEY_CMD?}"
+export GPG2F_HASH_DECRYPTION_KEY_CMD=(. .gpg2f/scripts/calculate-hash/openssl-sha256.sh)
+export GPG2F_HASH_ENCRYPTION_KEY_CMD=("${GPG2F_HASH_DECRYPTION_KEY_CMD[@]}")
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Command to display GUI pop-up notifications
@@ -99,7 +99,7 @@ export GPG2F_HASH_DERIVED_ENCRYPTION_KEY_CMD="${GPG2F_HASH_DERIVED_DECRYPTION_KE
 # .gpg2f/scripts/show-notification/powershell.sh ... use PowerShell to display a balloon tip/pop-up
 #-----------------------------------------------------------------------------------------------------------------------
 
-export GPG2F_NOTIFICATION_CMD=". .gpg2f/scripts/show-notification/auto.sh"
+export GPG2F_NOTIFICATION_CMD=(. .gpg2f/scripts/show-notification/auto.sh)
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Notification options are specific to the notifier. The PowerShell notifier ignores all options. Java supports the
@@ -118,4 +118,5 @@ export GPG2F_NOTIFICATION_CMD=". .gpg2f/scripts/show-notification/auto.sh"
 # There must not be any whitespace within a key-value pair.
 #-----------------------------------------------------------------------------------------------------------------------
 
-export GPG2F_DEFAULT_NOTIFICATION_OPTIONS=""
+export GPG2F_DEFAULT_NOTIFICATION_OPTIONS=(delay=1s)
+export GPG2F_DEFAULT_NOTIFICATION_OPTIONS=()

@@ -7,7 +7,11 @@
 function gpg2f_load_and_validate_config() {
     if ! gpg2f_load_config; then
         return 1
-    elif ! gpg2f_validate_config; then
+    fi
+    local CONFIG_ERRORS
+    CONFIG_ERRORS=$(gpg2f_validate_config)
+    if [[ -n "${CONFIG_ERRORS}" ]]; then
+        echo -n "${CONFIG_ERRORS}" >&2
         return 1
     fi
 }
@@ -33,72 +37,91 @@ function gpg2f_load_config() {
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_validate_config() {
-    local EXIT_CODE=0
-    if [[ -z "${GPG2F_GPG_CMD[*]}" ]]; then
+    if ! declare -p GPG2F_GPG_CMD >/dev/null 2>&1; then
         echo "ERROR: GPG2F_GPG_CMD is not set"
-        EXIT_CODE=1
+    elif [[ ! "$(declare -p GPG2F_GPG_CMD)" =~ "declare -a" ]]; then
+        echo "ERROR: GPG2F_GPG_CMD is not an array"
+    elif [[ -z "${GPG2F_GPG_CMD[*]}" ]]; then
+        echo "ERROR: GPG2F_GPG_CMD is not set"
     fi
-    if [[ ! "$(declare -p GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS)" =~ "declare -a" ]]; then
+    if ! declare -p GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS >/dev/null 2>&1; then
         echo "ERROR: GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS is not set"
-        EXIT_CODE=1
+    elif [[ ! "$(declare -p GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS)" =~ "declare -a" ]]; then
+        echo "ERROR: GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS is not an array"
     fi
-    if [[ ! "$(declare -p GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS)" =~ "declare -a" ]]; then
+    if ! declare -p GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS >/dev/null 2>&1; then
         echo "ERROR: GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS is not set"
-        EXIT_CODE=1
+    elif [[ ! "$(declare -p GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS)" =~ "declare -a" ]]; then
+        echo "ERROR: GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS is not an array"
     fi
-    if [[ ! "$(declare -p GPG2F_GPG_DECRYPTION_OPTIONS)" =~ "declare -a" ]]; then
+    if ! declare -p GPG2F_GPG_DECRYPTION_OPTIONS >/dev/null 2>&1; then
         echo "ERROR: GPG2F_GPG_DECRYPTION_OPTIONS is not set"
-        EXIT_CODE=1
+    elif [[ ! "$(declare -p GPG2F_GPG_DECRYPTION_OPTIONS)" =~ "declare -a" ]]; then
+        echo "ERROR: GPG2F_GPG_DECRYPTION_OPTIONS is not an array"
     fi
-
-    if [[ -z "${GPG2F_GENERATE_SEED_CMD}" ]]; then
+    if ! declare -p GPG2F_GENERATE_SEED_CMD >/dev/null 2>&1; then
         echo "ERROR: GPG2F_GENERATE_SEED_CMD is not set"
-        EXIT_CODE=1
+    elif [[ ! "$(declare -p GPG2F_GENERATE_SEED_CMD)" =~ "declare -a" ]]; then
+        echo "ERROR: GPG2F_GENERATE_SEED_CMD is not an array"
+    elif [[ -z "${GPG2F_GENERATE_SEED_CMD[*]}" ]]; then
+        echo "ERROR: GPG2F_GENERATE_SEED_CMD is not set"
     fi
     if [[ -z "${GPG2F_GENERATED_SEED_EXPECTED_LENGTH}" ]]; then
         echo "ERROR: GPG2F_GENERATED_SEED_EXPECTED_LENGTH is not set"
-        EXIT_CODE=1
+    elif ! [ "${GPG2F_GENERATED_SEED_EXPECTED_LENGTH?}" -eq "${GPG2F_GENERATED_SEED_EXPECTED_LENGTH?}" ] 2>/dev/null; then
+        echo "ERROR: GPG2F_GENERATED_SEED_EXPECTED_LENGTH is not a number"
+    elif [[ "${GPG2F_GENERATED_SEED_EXPECTED_LENGTH?}" -lt 1 ]]; then
+        echo "ERROR: GPG2F_GENERATED_SEED_EXPECTED_LENGTH must be a positive number"
     fi
-    if [[ -z "${GPG2F_DECRYPTION_KEY_DERIVATION_CMD}" ]]; then
-        echo "ERROR: GPG2F_DECRYPTION_KEY_DERIVATION_CMD is not set"
-        EXIT_CODE=1
+    if ! declare -p GPG2F_DERIVE_DECRYPTION_KEY_CMD >/dev/null 2>&1; then
+        echo "ERROR: GPG2F_DERIVE_DECRYPTION_KEY_CMD is not set"
+    elif [[ ! "$(declare -p GPG2F_DERIVE_DECRYPTION_KEY_CMD)" =~ "declare -a" ]]; then
+        echo "ERROR: GPG2F_DERIVE_DECRYPTION_KEY_CMD is not an array"
+    elif [[ -z "${GPG2F_DERIVE_DECRYPTION_KEY_CMD[*]}" ]]; then
+        echo "ERROR: GPG2F_DERIVE_DECRYPTION_KEY_CMD is not set"
     fi
-    if [[ "${#GPG2F_DECRYPTION_KEY_DERIVATION_CMD[@]}" -eq 0 ]]; then
-        echo "ERROR: GPG2F_DECRYPTION_KEY_DERIVATION_CMD is not set"
-        EXIT_CODE=1
+    if ! declare -p GPG2F_DERIVE_ENCRYPTION_KEY_CMD >/dev/null 2>&1; then
+        echo "ERROR: GPG2F_DERIVE_ENCRYPTION_KEY_CMD is not set"
+    elif [[ ! "$(declare -p GPG2F_DERIVE_ENCRYPTION_KEY_CMD)" =~ "declare -a" ]]; then
+        echo "ERROR: GPG2F_DERIVE_ENCRYPTION_KEY_CMD is not an array"
+    elif [[ -z "${GPG2F_DERIVE_ENCRYPTION_KEY_CMD[*]}" ]]; then
+        echo "ERROR: GPG2F_DERIVE_ENCRYPTION_KEY_CMD is not set"
     fi
-    if [[ -z "${GPG2F_ENCRYPTION_KEY_DERIVATION_CMD}" ]]; then
-        echo "ERROR: GPG2F_ENCRYPTION_KEY_DERIVATION_CMD is not set"
-        EXIT_CODE=1
+    if [[ -z "${GPG2F_MIN_DERIVED_KEY_LENGTH}" ]]; then
+        echo "ERROR: GPG2F_MIN_DERIVED_KEY_LENGTH is not set"
+    elif ! [ "${GPG2F_MIN_DERIVED_KEY_LENGTH?}" -eq "${GPG2F_MIN_DERIVED_KEY_LENGTH?}" ] 2>/dev/null; then
+        echo "ERROR: GPG2F_MIN_DERIVED_KEY_LENGTH is not a number"
+    elif [[ "${GPG2F_MIN_DERIVED_KEY_LENGTH?}" -lt 1 ]]; then
+        echo "ERROR: GPG2F_MIN_DERIVED_KEY_LENGTH must be a positive number"
     fi
-    if [[ "${#GPG2F_ENCRYPTION_KEY_DERIVATION_CMD[@]}" -eq 0 ]]; then
-        echo "ERROR: GPG2F_ENCRYPTION_KEY_DERIVATION_CMD is not set"
-        EXIT_CODE=1
+    if ! declare -p GPG2F_HASH_DECRYPTION_KEY_CMD >/dev/null 2>&1; then
+        echo "ERROR: GPG2F_HASH_DECRYPTION_KEY_CMD is not set"
+    elif [[ ! "$(declare -p GPG2F_HASH_DECRYPTION_KEY_CMD)" =~ "declare -a" ]]; then
+        echo "ERROR: GPG2F_HASH_DECRYPTION_KEY_CMD is not an array"
+    elif [[ -z "${GPG2F_HASH_DECRYPTION_KEY_CMD[*]}" ]]; then
+        echo "ERROR: GPG2F_HASH_DECRYPTION_KEY_CMD is not set"
     fi
-    if [[ -z "${GPG2F_MIN_DERIVED_KEY_LENGTH?}" ]]; then
-        echo "ERROR: GPG2F_MIN_DERIVED_KEY_LENGTH is not set" >&2
-        EXIT_CODE=1
-    elif [[ ${GPG2F_MIN_DERIVED_KEY_LENGTH?} -lt 10 ]]; then
-        echo "ERROR: GPG2F_MIN_DERIVED_KEY_LENGTH must be at least 10 (current value: ${GPG2F_MIN_DERIVED_KEY_LENGTH?})" >&2
-        EXIT_CODE=1
+    if ! declare -p GPG2F_HASH_ENCRYPTION_KEY_CMD >/dev/null 2>&1; then
+        echo "ERROR: GPG2F_HASH_ENCRYPTION_KEY_CMD is not set"
+    elif [[ ! "$(declare -p GPG2F_HASH_ENCRYPTION_KEY_CMD)" =~ "declare -a" ]]; then
+        echo "ERROR: GPG2F_HASH_ENCRYPTION_KEY_CMD is not an array"
+    elif [[ -z "${GPG2F_HASH_ENCRYPTION_KEY_CMD[*]}" ]]; then
+        echo "ERROR: GPG2F_HASH_ENCRYPTION_KEY_CMD is not set"
     fi
-    if [[ -z "${GPG2F_HASH_DERIVED_ENCRYPTION_KEY_CMD}" ]]; then
-        echo "ERROR: GPG2F_HASH_DERIVED_ENCRYPTION_KEY_CMD is not set"
-        EXIT_CODE=1
-    fi
-    if [[ -z "${GPG2F_NOTIFICATION_CMD}" ]]; then
+    if ! declare -p GPG2F_NOTIFICATION_CMD >/dev/null 2>&1; then
         echo "ERROR: GPG2F_NOTIFICATION_CMD is not set"
-        EXIT_CODE=1
+    elif [[ ! "$(declare -p GPG2F_NOTIFICATION_CMD)" =~ "declare -a" ]]; then
+        echo "ERROR: GPG2F_NOTIFICATION_CMD is not an array"
     fi
-    if [[ -z "${GPG2F_DEFAULT_NOTIFICATION_OPTIONS+x}" ]]; then
+    if ! declare -p GPG2F_DEFAULT_NOTIFICATION_OPTIONS >/dev/null 2>&1; then
         echo "ERROR: GPG2F_DEFAULT_NOTIFICATION_OPTIONS is not set"
-        EXIT_CODE=1
+    elif [[ ! "$(declare -p GPG2F_DEFAULT_NOTIFICATION_OPTIONS)" =~ "declare -a" ]]; then
+        echo "ERROR: GPG2F_DEFAULT_NOTIFICATION_OPTIONS is not an array"
     fi
-    return ${EXIT_CODE?}
 }
 
 function gpg2f_unset_load_and_validate_config() {
-    unset gpg2f_load_and_validate_config gpg2f_load_config gpg2f_validate_config gpg2f_unset_laod_and_validate_config gpg2f_unset_load_and_validate_config
+    unset gpg2f_load_and_validate_config gpg2f_load_config gpg2f_validate_config gpg2f_unset_load_and_validate_config
 }
 
 # shellcheck disable=SC2317

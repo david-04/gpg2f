@@ -103,7 +103,7 @@ function gpg2f_encrypt() {
 
     # derive the encryption key
     local ENCRYPTION_KEY
-    if ! ENCRYPTION_KEY=$(gpg2f_derive_encryption_key "${SEED?}" "${GPG2F_HASH_DERIVED_ENCRYPTION_KEY_CMD?}" GPG2F_ENCRYPTION_KEY_DERIVATION_CMD "${GPG2F_ENCRYPTION_KEY_DERIVATION_CMD[@]}"); then
+    if ! ENCRYPTION_KEY=$(gpg2f_derive_encryption_key "${SEED?}" encrypt); then
         return 1
     fi
 
@@ -154,15 +154,15 @@ function gpg2f_decrypt() {
     local SEED
     IFS=$'\n' read -r SEED
     gpg2f_debug "Extracting the seed"
-    gpg2f_debug "- raw seed: <${SEED?}>"
+    gpg2f_debug "- seed: <${SEED?}>"
     if ! SEED=$(gpg2f_normalize_seed "${SEED?}"); then
         exec <&0
         return 1
     fi
-    gpg2f_debug "- normalized seed: <${SEED?}>"
+    gpg2f_debug "- normalized: <${SEED?}>"
 
     # derive the encryption key
-    if ! ENCRYPTION_KEY=$(gpg2f_derive_encryption_key "${SEED?}" "${GPG2F_HASH_DERIVED_DECRYPTION_KEY_CMD?}" GPG2F_DECRYPTION_KEY_DERIVATION_CMD "${GPG2F_DECRYPTION_KEY_DERIVATION_CMD[@]}"); then
+    if ! ENCRYPTION_KEY=$(gpg2f_derive_encryption_key "${SEED?}" decrypt); then
         exec <&0
         return 1
     fi
@@ -184,10 +184,10 @@ function gpg2f_decrypt() {
 
 function gpg2f_generate_random_seed() {
     gpg2f_debug "Generating the random seed"
-    gpg2f_debug "- command: ${GPG2F_GENERATE_SEED_CMD?}"
+    gpg2f_debug "- command: ${GPG2F_GENERATE_SEED_CMD[*]}"
     local SEED
-    if ! SEED=$(${GPG2F_GENERATE_SEED_CMD?}); then
-        echo "ERROR: Failed to generate the seed via: ${GPG2F_GENERATE_SEED_CMD?}" >&2
+    if ! SEED=$("${GPG2F_GENERATE_SEED_CMD[@]}"); then
+        echo "ERROR: Failed to generate the seed via: ${GPG2F_GENERATE_SEED_CMD[*]}" >&2
         return 1
     fi
     gpg2f_debug "- raw seed: <${SEED?}>"
@@ -226,45 +226,54 @@ function gpg2f_normalize_seed() {
 # Derive the encryption key. Fails if the derived encrytpion key is empty.
 #-----------------------------------------------------------------------------------------------------------------------
 # $1 ... the seed
-# $2 ... command to calculate the hash
-# $3 ... command variable name ("GPG2F_ENCRYPTION_KEY_DERIVATION_CMD" or "GPG2F_DECRYPTION_KEY_DERIVATION_CMD")
-# #* ... the contents/commands of ${$2}
+# $2 ... operation ("encrypt" or "decrypt")
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_derive_encryption_key() {
+
+    # extract parameters
     local SEED="$1"
-    local HASH_COMMAND="$2"
-    local COMMAND_VARIABLE="$3"
-    shift
-    shift
-    shift
-    local CONCATENATED_KEY=""
+    local OPERATION="$2"
+
+    # obtain the commands for deriving and hashing the encryption key
+    local DERIVE_KEY_COMMANDS DERIVE_KEY_COMMANDS_VARIABLE_NAME
+    if [[ "${OPERATION?}" == "encrypt" ]]; then
+        DERIVE_KEY_COMMANDS_VARIABLE_NAME="GPG2F_DERIVE_ENCRYPTION_KEY_CMD"
+        DERIVE_KEY_COMMANDS=("${GPG2F_DERIVE_ENCRYPTION_KEY_CMD[@]}")
+    elif [[ "${OPERATION?}" == "decrypt" ]]; then
+        DERIVE_KEY_COMMANDS_VARIABLE_NAME="GPG2F_DERIVE_DECRYPTION_KEY_CMD"
+        DERIVE_KEY_COMMANDS=("${GPG2F_DERIVE_DECRYPTION_KEY_CMD[@]}")
+    else
+        echo "ERROR: Invalid operation \"${OPERATION?}\" passed to gpg2f_derive_encryption_key (expected: \"encrypt\" or \"decrypt\")" >&2
+        return 1
+    fi
+
+    # derive and concatenate all keys
     local COMMAND CURRENT_KEY CURRENT_HASHED_KEY
+    local CONCATENATED_KEY=""
     local INDEX=0
-    for COMMAND in "$@"; do
+    for COMMAND in "${DERIVE_KEY_COMMANDS[@]}"; do
         ((INDEX += 1))
         gpg2f_debug ""
         gpg2f_debug "Deriving encryption key ${INDEX?}"
         gpg2f_debug "- seed: <${SEED?}>"
         gpg2f_debug "- command: ${COMMAND?}"
-        if [[ -z "${COMMAND?}" ]]; then
-            echo "ERROR: ${COMMAND_VARIABLE?} contains an empty command" >&2
+        if [[ -z "${COMMAND[*]}" ]]; then
+            echo "ERROR: ${DERIVE_KEY_COMMANDS_VARIABLE_NAME?} contains an empty string/command" >&2
             return 1
-        elif ! CURRENT_KEY=$(
-            exec <<<"${SEED?}"
-            eval "${COMMAND}"
-            exec <&0
-        ); then
-            echo "ERROR: Failed to derive the key (\"${COMMAND?}\" returned an error)" >&2
+        elif ! CURRENT_KEY=$(eval ${COMMAND} <<<"${SEED?}"); then
+            echo "ERROR: Command \"${COMMAND[*]}\" returned an error" >&2
             return 1
-        elif ! CURRENT_HASHED_KEY=$(gpg2f_validate_and_hash_derived_key "${HASH_COMMAND?}" "${CURRENT_KEY?}" "derived encryption key returned by \"${COMMAND?}\""); then
+        elif ! CURRENT_HASHED_KEY=$(gpg2f_validate_and_hash_derived_key "${CURRENT_KEY?}" "${OPERATION?}" "derived key returned by \"${COMMAND[*]?}\""); then
             return 1
         fi
         CONCATENATED_KEY="${CONCATENATED_KEY?}${CURRENT_HASHED_KEY?}"
     done
+
+    # hash the concatenated key
     gpg2f_debug ""
     gpg2f_debug "Hashing the concatenated key"
-    if ! gpg2f_validate_and_hash_derived_key "${HASH_COMMAND?}" "${CONCATENATED_KEY?}" "concatenated derived encryption key"; then
+    if ! gpg2f_validate_and_hash_derived_key "${CONCATENATED_KEY?}" "${OPERATION?}" "concatenated derived key"; then
         return 1
     fi
 }
@@ -272,15 +281,36 @@ function gpg2f_derive_encryption_key() {
 #-----------------------------------------------------------------------------------------------------------------------
 # Check the length of a derived key, hash it, check the lenght of the hashed key and print it.
 #-----------------------------------------------------------------------------------------------------------------------
-# $1 ... command to calculate the hash
-# $2 ... the key
+# $1 ... the key to validate and hash
+# $2 ... operation ("encrypt" or "decrypt")
 # $3 ... description (e.g. "concatenated key" or "key generated by [command]")
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_validate_and_hash_derived_key() {
-    local HASH_COMMAND="$1"
-    local KEY="$2"
+
+    # extract the parameters
+    local KEY="$1"
+    local OPERATION="$2"
     local KEY_NAME="$3"
+
+    # obtain the commands for deriving and hashing the encryption key
+    local HASH_KEY_COMMAND HASH_KEY_COMMAND_VARIABLE_NAME
+    if [[ "${OPERATION?}" == "encrypt" ]]; then
+        HASH_KEY_COMMAND_VARIABLE_NAME="GPG2F_HASH_ENCRYPTION_KEY_CMD"
+        HASH_KEY_COMMAND=("${GPG2F_HASH_ENCRYPTION_KEY_CMD[@]}")
+    elif [[ "${OPERATION?}" == "decrypt" ]]; then
+        HASH_KEY_COMMAND_VARIABLE_NAME="GPG2F_HASH_DECRYPTION_KEY_CMD"
+        HASH_KEY_COMMAND=("${GPG2F_HASH_DECRYPTION_KEY_CMD[@]}")
+    else
+        echo "ERROR: Invalid operation \"${OPERATION?}\" passed to gpg2f_validate_and_hash_derived_key (expected: \"encrypt\" or \"decrypt\")" >&2
+        return 1
+    fi
+
+    # verify that the hash command is not empty
+    if [[ -z "${HASH_KEY_COMMAND[*]}" ]]; then
+        echo "ERROR: ${HASH_KEY_COMMAND_VARIABLE_NAME?} is empty" >&2
+        return 1
+    fi
 
     # normalize the key
     local NORMALIZED_KEY
@@ -296,10 +326,10 @@ function gpg2f_validate_and_hash_derived_key() {
     fi
 
     # hash the normalized key
-    gpg2f_debug "- command: ${HASH_COMMAND?}"
+    gpg2f_debug "- command: ${HASH_KEY_COMMAND[*]}"
     local HASHED_KEY
-    if ! HASHED_KEY=$(${HASH_COMMAND?} <<<"${NORMALIZED_KEY?}"); then
-        echo "ERROR: Failed to hash the ${KEY_NAME?} (\"${HASH_COMMAND?}\" returned an error)" >&2
+    if ! HASHED_KEY=$("${HASH_KEY_COMMAND[@]}" <<<"${NORMALIZED_KEY?}"); then
+        echo "ERROR: Failed to hash the ${KEY_NAME?} (\"${HASH_KEY_COMMAND[*]}\" returned an error)" >&2
         return 1
     fi
     gpg2f_debug "- hashed key: <${HASHED_KEY?}>"
@@ -380,19 +410,19 @@ function with-notification() {
     shift
     local EXIT_CODE=0
     local PID=""
-    if [[ -n "${MESSAGE?}" ]]; then
+    if [[ -n "${MESSAGE?}" && -n "${GPG2F_NOTIFICATION_CMD[*]}" ]]; then
         exec 3> >(
             local DELAY
             if DELAY=$(gpg2f_get_notification_delay); then
                 sleep "${DELAY?}"
             fi
-            eval "${GPG2F_NOTIFICATION_CMD}" "${MESSAGE?}"
+            "${GPG2F_NOTIFICATION_CMD[@]}" "${MESSAGE?}"
         )
         PID=$!
     fi
     "$@"
     EXIT_CODE=$?
-    if [[ -n "${MESSAGE?}" ]]; then
+    if [[ -n "${MESSAGE?}" && -n "${GPG2F_NOTIFICATION_CMD[*]}" ]]; then
         exec 3>&-
     fi
     if [[ -n "${PID?}" ]]; then
@@ -407,7 +437,7 @@ function with-notification() {
 
 function gpg2f_get_notification_delay() {
     local OPTION
-    for OPTION in ${NOTIFICATION_OPTIONS} ${GPG2F_DEFAULT_NOTIFICATION_OPTIONS?}; do
+    for OPTION in ${NOTIFICATION_OPTIONS} "${GPG2F_DEFAULT_NOTIFICATION_OPTIONS[@]}"; do
         if [[ "${OPTION?}" =~ "delay=" ]]; then
             echo "${OPTION//delay=/}"
             return 0
@@ -443,13 +473,13 @@ function gpg2f_run_and_unset() {
         GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS
         GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS
         GPG2F_GPG_DECRYPTION_OPTIONS
-        GPG2F_DECRYPTION_KEY_DERIVATION_CMD
-        GPG2F_ENCRYPTION_KEY_DERIVATION_CMD
+        GPG2F_DERIVE_DECRYPTION_KEY_CMD
+        GPG2F_DERIVE_ENCRYPTION_KEY_CMD
         GPG2F_MIN_DERIVED_KEY_LENGTH
         GPG2F_GENERATE_SEED_CMD
         GPG2F_GENERATED_SEED_EXPECTED_LENGTH
-        GPG2F_HASH_DERIVED_DECRYPTION_KEY_CMD
-        GPG2F_HASH_DERIVED_ENCRYPTION_KEY_CMD
+        GPG2F_HASH_DECRYPTION_KEY_CMD
+        GPG2F_HASH_ENCRYPTION_KEY_CMD
         GPG2F_NOTIFICATION_CMD
         GPG2F_DEFAULT_NOTIFICATION_OPTIONS
     )
