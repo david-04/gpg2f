@@ -1,11 +1,39 @@
 #-----------------------------------------------------------------------------------------------------------------------
-# Base command for invoking GnuPG.
+# GnuPG command and options
+#-----------------------------------------------------------------------------------------------------------------------
+# GPG2F_GPG_CMD ............................. base command for all operations (encrypt/decrypt/symmetric/asymmetric)
+# GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS .... additional options/parameters when encrypting symmetrically
+# GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS ... additional options/parameters when encrypting asymmetrically
+# GPG2F_GPG_DECRYPTION_OPTIONS .............. additional options/parameters when decrypting
 #-----------------------------------------------------------------------------------------------------------------------
 
-export GPG2F_GPG_CMD="gpg2 --quiet --no-permission-warning --batch --cipher-algo AES256"
+export GPG2F_GPG_CMD="gpg2 --quiet --no-permission-warning --batch"
+
+export GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS="--cipher-algo AES256"
+export GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS=""
+export GPG2F_GPG_DECRYPTION_OPTIONS=""
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Commands to derive the encryption key. Each command works as follows:
+# Random seed generation
+#-----------------------------------------------------------------------------------------------------------------------
+# Every time content is encrypted, a random seed is generated. It is used to derive one or more keys that are eventually
+# concatenated and hashed into the actual/effective encryption key. The command below is used to generate the seed:
+#
+#   . .gpg2f/scripts/generate-seed/openssl-hex.sh 63
+#
+
+# A command that generates a random seed and prints it to stdout. The expected string length is used to verify that the
+# seed has the correct length (to pretect against any malfunction of the seed generator command).
+#-----------------------------------------------------------------------------------------------------------------------
+
+export GPG2F_GENERATE_SEED_CMD=". .gpg2f/scripts/generate-seed/openssl-hex.sh 63"
+export GPG2F_GENERATED_SEED_EXPECTED_LENGTH="126"
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Derive the encryption key(s)
+#-----------------------------------------------------------------------------------------------------------------------
+# Every time content is encrypted, a random seed is generated
+# Each command works as follows:
 #
 #   1. If required for the operation, read the seed from stdin
 #   2. Generate a key (either by deriving it from the seed or by acquiring a static secret)
@@ -39,7 +67,7 @@ export GPG2F_GPG_CMD="gpg2 --quiet --no-permission-warning --batch --cipher-algo
 #-----------------------------------------------------------------------------------------------------------------------
 
 export GPG2F_DECRYPTION_KEY_DERIVATION_CMD=(
-    "NOTIFICATION_OPTIONS='a b c' with-notification 'Touch the YubiKey' . .gpg2f/scripts/derive-key/yubikey-challenge-response.sh 2"
+    "NOTIFICATION_OPTIONS='option1=true option2=false' with-notification 'Touch the YubiKey' . .gpg2f/scripts/derive-key/yubikey-challenge-response.sh 2"
 )
 
 export GPG2F_ENCRYPTION_KEY_DERIVATION_CMD=("${GPG2F_DECRYPTION_KEY_DERIVATION_CMD[@]}")
@@ -56,14 +84,6 @@ export GPG2F_MIN_DERIVED_KEY_LENGTH=20
 
 export GPG2F_HASH_DERIVED_DECRYPTION_KEY_CMD=". .gpg2f/scripts/calculate-hash/openssl-sha512.sh"
 export GPG2F_HASH_DERIVED_ENCRYPTION_KEY_CMD="${GPG2F_HASH_DERIVED_DECRYPTION_KEY_CMD?}"
-
-#-----------------------------------------------------------------------------------------------------------------------
-# A command that generates a random seed and prints it to stdout. The expected string length is used to verify that the
-# seed has the correct length (to pretect against any malfunction of the seed generator command).
-#-----------------------------------------------------------------------------------------------------------------------
-
-export GPG2F_GENERATED_SEED_CMD=". .gpg2f/scripts/generate-seed/openssl-hex.sh 63"
-export GPG2F_GENERATED_SEED_EXPECTED_LENGTH="126"
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Command to display GUI pop-up notifications

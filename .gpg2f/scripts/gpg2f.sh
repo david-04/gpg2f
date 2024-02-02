@@ -1,68 +1,19 @@
 #!/usr/bin/env bash
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Load the configuration
-#-----------------------------------------------------------------------------------------------------------------------
-
-if [[ -f "./settings.sh" ]]; then
-    # shellcheck disable=SC1091
-    . "./settings.sh"
-elif [[ -f "./.gpg2f/examples/settings.example.sh" ]]; then
-    # shellcheck disable=SC1091
-    . "./.gpg2f/examples/settings.example.sh"
-else
-    echo "ERROR: Neither $(pwd)/settings.sh nor $(pwd)/.gpg2f/examples.settings.example.sh exists" >&2
-    # shellcheck disable=SC2317
-    return 1 2>/dev/null || exit 1
-fi
-
-#-----------------------------------------------------------------------------------------------------------------------
-# Run the application and unset all functions and variables. All parameters are passed through to gpg2f_main.
-#-----------------------------------------------------------------------------------------------------------------------
-
-function gpg2f_run_and_unset() {
-    local FUNCTIONS_TO_UNSET=(
-        gpg2f_run_and_unset
-        gpg2f_main
-        gpg2f_display_syntax_help
-        gpg2f_display_version_and_copyright
-        gpg2f_validate_configuration
-        gpg2f_encrypt
-        gpg2f_decrypt
-        gpg2f_generate_random_seed
-        gpg2f_normalize_seed
-        gpg2f_derive_encryption_key
-        gpg2f_validate_and_hash_derived_key
-        gpg2f_run_gpg
-    )
-    local CONFIG_VARIABLES_TO_UNSET=(
-        GPG2F_GPG_CMD
-        GPG2F_DECRYPTION_KEY_DERIVATION_CMD
-        GPG2F_ENCRYPTION_KEY_DERIVATION_CMD
-        GPG2F_MIN_DERIVED_KEY_LENGTH
-        GPG2F_GENERATED_SEED_CMD
-        GPG2F_GENERATED_SEED_EXPECTED_LENGTH
-        GPG2F_HASH_DERIVED_DECRYPTION_KEY_CMD
-        GPG2F_HASH_DERIVED_ENCRYPTION_KEY_CMD
-        GPG2F_NOTIFICATION_CMD
-        GPG2F_DEFAULT_NOTIFICATION_OPTIONS
-    )
-    local EXIT_CODE
-    gpg2f_main "$@"
-    EXIT_CODE=$?
-    unset "${FUNCTIONS_TO_UNSET?}" "${CONFIG_VARIABLES_TO_UNSET?}"
-    unset CONFIG_VARIABLES_TO_UNSET FUNCTIONS_TO_UNSET
-    return ${EXIT_CODE?}
-}
-
-#-----------------------------------------------------------------------------------------------------------------------
-# Main entry point
+# Main program
 #-----------------------------------------------------------------------------------------------------------------------
 # $1 ... "encrypt" or "decrypt"
-# $2 ... optional: file to read from (when decrypting) or to write to (when encrypting)
+# #* ... <no parameters> .............................. en-/decrypt from stdin to stdout
+#     or [file] ....................................... en-/decrypt using the given file
+#     or [--debug|-debug|--verbose|-verbose] .......... en-/decrypt stdin to stdout with stderr debug logging
+#     or [--debug|-debug|--verbose|-verbose] [file] ... en-/decrypt using the given file with stderr debug logging
+#     or [--help|-help|-h] ............................ display help syntax
+#     or [--version|-version|-v] ...................... display version information
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_main() {
+    gpg2f_load_configuration
     local OPERATION=""
     if [[ "$1" == "encrypt" || "$1" == "decrypt" ]]; then
         OPERATION="$1"
@@ -74,6 +25,9 @@ function gpg2f_main() {
     elif [[ "$1" == "--version" || "$1" == "-version" || "$1" == "-v" ]]; then
         gpg2f_display_version_and_copyright
         return 0
+    elif [[ "$1" == "--debug" || "$1" == "-debug" || "$1" == "--verbose" || "$1" == "-verbose" ]]; then
+        export GPG2F_DEBUG=true
+        shift
     fi
     if [[ 1 -lt $# || -z "${OPERATION?}" ]]; then
         if [[ -n "${OPERATION?}" ]]; then
@@ -100,11 +54,13 @@ function gpg2f_main() {
 function gpg2f_display_syntax_help() {
     echo "gpg2f - Symmetric multifactor-encryption with GnuPG"
     echo ""
-    echo "Syntax: encrypt.sh [file]"
-    echo "    or: decrypt.sh [file]"
+    echo "Syntax: encrypt.sh [--debug] [file]"
+    echo "    or: decrypt.sh [--debug] [file]"
     echo ""
     echo "Encrypt stdin to the given [file] or decrypt the given [file] to stdout."
     echo "If [file] is not given, encrypt to stdout or decrypt from stdin."
+    echo ""
+    echo "The --debug option prints diagnostic information (including passwords and keys) to stderr."
     echo ""
     echo "Full documentation: https://github.com/david-04/gpg2f/blob/main/README.md"
 }
@@ -120,6 +76,24 @@ function gpg2f_display_version_and_copyright() {
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
+# Load the configuration
+#-----------------------------------------------------------------------------------------------------------------------
+
+function gpg2f_load_configuration() {
+    if [[ -f "./settings.sh" ]]; then
+        # shellcheck disable=SC1091
+        . "./settings.sh"
+    elif [[ -f "./.gpg2f/examples/settings.example.sh" ]]; then
+        # shellcheck disable=SC1091
+        . "./.gpg2f/examples/settings.example.sh"
+    else
+        echo "ERROR: Neither $(pwd)/settings.sh nor $(pwd)/.gpg2f/examples.settings.example.sh exists" >&2
+        # shellcheck disable=SC2317
+        return 1 2>/dev/null || exit 1
+    fi
+}
+
+#-----------------------------------------------------------------------------------------------------------------------
 # Validate the configuration
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -129,8 +103,21 @@ function gpg2f_validate_configuration() {
         echo "ERROR: GPG2F_GPG_CMD is not set"
         EXIT_CODE=1
     fi
-    if [[ -z "${GPG2F_GENERATED_SEED_CMD}" ]]; then
-        echo "ERROR: GPG2F_GENERATED_SEED_CMD is not set"
+    if [[ -z "${GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS+x}" ]]; then
+        echo "ERROR: GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS is not set"
+        EXIT_CODE=1
+    fi
+    if [[ -z "${GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS+x}" ]]; then
+        echo "ERROR: GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS is not set"
+        EXIT_CODE=1
+    fi
+    if [[ -z "${GPG2F_GPG_DECRYPTION_OPTIONS+x}" ]]; then
+        echo "ERROR: GPG2F_GPG_DECRYPTION_OPTIONS is not set"
+        EXIT_CODE=1
+    fi
+
+    if [[ -z "${GPG2F_GENERATE_SEED_CMD}" ]]; then
+        echo "ERROR: GPG2F_GENERATE_SEED_CMD is not set"
         EXIT_CODE=1
     fi
     if [[ -z "${GPG2F_GENERATED_SEED_EXPECTED_LENGTH}" ]]; then
@@ -182,18 +169,29 @@ function gpg2f_validate_configuration() {
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_encrypt() {
+
+    # exgtract parameters
     local OUTPUT_FILE="$1"
+
+    # generate the seed
     local SEED
     if ! SEED="$(gpg2f_generate_random_seed)"; then
         return 1
     fi
+
+    # derive the encryption key
     local ENCRYPTION_KEY
-    if ! SEED=$(gpg2f_normalize_seed "${SEED?}"); then
-        return 1
-    fi
     if ! ENCRYPTION_KEY=$(gpg2f_derive_encryption_key "${SEED?}" "${GPG2F_HASH_DERIVED_ENCRYPTION_KEY_CMD?}" "GPG2F_ENCRYPTION_KEY_DERIVATION_CMD" "${GPG2F_ENCRYPTION_KEY_DERIVATION_CMD[@]}"); then
         return 1
     fi
+
+    # log the effective encrytpion parameters
+    gpg2f_debug ""
+    gpg2f_debug "Final encryption parameters"
+    gpg2f_debug "- seed: <${SEED?}>"
+    gpg2f_debug "- encryption key: <${ENCRYPTION_KEY?}>"
+
+    # encrypt the content
     if [[ -n "${OUTPUT_FILE}" ]]; then
         mkdir -p "$(dirname "${OUTPUT_FILE?}")"
         exec >"${OUTPUT_FILE?}.tmp"
@@ -223,24 +221,43 @@ function gpg2f_encrypt() {
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_decrypt() {
-    if [[ -n "$1" ]]; then
-        exec <"$1"
+
+    # extract arguments
+    local INPUT_FILE="$1"
+
+    # point stdin to the input file (if present)
+    if [[ -n "${INPUT_FILE?}" ]]; then
+        exec <"${INPUT_FILE?}"
     fi
+
+    # extract the seed
     local SEED
     IFS=$'\n' read -r SEED
+    gpg2f_debug "Extracting the seed"
+    gpg2f_debug "- raw seed: <${SEED?}>"
     if ! SEED=$(gpg2f_normalize_seed "${SEED?}"); then
         exec <&0
         return 1
     fi
+    gpg2f_debug "- normalized seed: <${SEED?}>"
+
+    # derive the encryption key
     if ! ENCRYPTION_KEY=$(gpg2f_derive_encryption_key "${SEED?}" "${GPG2F_HASH_DERIVED_DECRYPTION_KEY_CMD?}" "GPG2F_DECRYPTION_KEY_DERIVATION_CMD" "${GPG2F_DECRYPTION_KEY_DERIVATION_CMD?}"); then
         exec <&0
         return 1
     fi
-    if ! gpg2f_run_gpg "decrypt" --decrypt --batch --passphrase-fd 3 --output - 3<<<"${ENCRYPTION_KEY?}"; then
-        exec <&0
-        return 1
-    fi
+
+    # log the effective encryption parameters
+    gpg2f_debug ""
+    gpg2f_debug "Final encryption parameters"
+    gpg2f_debug "- seed: <${SEED?}>"
+    gpg2f_debug "- encryption key: <${ENCRYPTION_KEY?}>"
+
+    # decrypt the content
+    gpg2f_run_gpg "decrypt" --decrypt --batch --passphrase-fd 3 --output - 3<<<"${ENCRYPTION_KEY?}"
+    local EXIT_CODE=$?
     exec <&0
+    return ${EXIT_CODE}
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -248,15 +265,22 @@ function gpg2f_decrypt() {
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_generate_random_seed() {
+    gpg2f_debug "Generating the random seed"
+    gpg2f_debug "- command: ${GPG2F_GENERATE_SEED_CMD?}"
     local SEED
-    if ! SEED=$(${GPG2F_GENERATED_SEED_CMD?}); then
-        echo "ERROR: Failed to generate the seed (received an error from \"${GPG2F_GENERATED_SEED_CMD?}\")" >&2
-        return 1
-    elif [[ ${#SEED} -ne ${GPG2F_GENERATED_SEED_EXPECTED_LENGTH?} ]]; then
-        echo "ERROR: Failed to generate the seed (\"${GPG2F_GENERATED_SEED_CMD?}\" generated ${#SEED} instead of ${GPG2F_GENERATED_SEED_EXPECTED_LENGTH?} characters)" >&2
+    if ! SEED=$(${GPG2F_GENERATE_SEED_CMD?}); then
+        echo "ERROR: Failed to generate the seed via: ${GPG2F_GENERATE_SEED_CMD?}" >&2
         return 1
     fi
-    echo -en "${SEED?}"
+    gpg2f_debug "- raw seed: <${SEED?}>"
+    local NORMALIZED
+    NORMALIZED=$(gpg2f_normalize_seed "${SEED?}")
+    gpg2f_debug "- normalized seed: <${NORMALIZED?}>"
+    if [[ ${#NORMALIZED} -ne ${GPG2F_GENERATED_SEED_EXPECTED_LENGTH?} ]]; then
+        echo "ERROR: The generated random seed <${NORMALIZED}> has ${#NORMALIZED} characters (expected: ${GPG2F_GENERATED_SEED_EXPECTED_LENGTH?})" >&2
+        return 1
+    fi
+    echo -n "${NORMALIZED?}"
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -267,13 +291,17 @@ function gpg2f_generate_random_seed() {
 
 function gpg2f_normalize_seed() {
     local SEED="$1"
-    SEED="${SEED//$'\r'/}"
-    SEED="${SEED//$'\n'/ }"
-    if [[ -z "${SEED?}" ]]; then
-        echo "ERROR: The normalized seed is empty" >&2
+    local NORMALIZED
+    NORMALIZED=$(gpg2f_remove_line_breaks "${SEED?}")
+    if [[ -n "${NORMALIZED?}" ]]; then
+        echo -n "${NORMALIZED?}"
+    elif [[ -z "${SEED?}" ]]; then
+        echo "ERROR: The seed is empty" >&2
+        return 1
+    else
+        echo "ERROR: The seed contains only whitespace" >&2
         return 1
     fi
-    echo -n "${SEED?}"
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -293,23 +321,29 @@ function gpg2f_derive_encryption_key() {
     shift
     shift
     local CONCATENATED_KEY=""
-    local COMMAND CURRENT_KEY
+    local COMMAND CURRENT_KEY CURRENT_HASHED_KEY
     for COMMAND in "$@"; do
+        gpg2f_debug ""
+        gpg2f_debug "Deriving the (next) encryption key"
+        gpg2f_debug "- seed: <${SEED?}>"
+        gpg2f_debug "- command: ${COMMAND?}"
         if [[ -z "${COMMAND?}" ]]; then
             echo "ERROR: ${COMMAND_VARIABLE?} contains an empty command" >&2
             return 1
         elif ! CURRENT_KEY=$(
             exec <<<"${SEED?}"
-            eval ${COMMAND}
+            eval "${COMMAND}"
             exec <&0
         ); then
             echo "ERROR: Failed to derive the key (\"${COMMAND?}\" returned an error)" >&2
             return 1
-        elif ! gpg2f_validate_and_hash_derived_key "${HASH_COMMAND?}" "${CURRENT_KEY?}" "derived encryption key returned by \"${COMMAND?}\""; then
+        elif ! CURRENT_HASHED_KEY=$(gpg2f_validate_and_hash_derived_key "${HASH_COMMAND?}" "${CURRENT_KEY?}" "derived encryption key returned by \"${COMMAND?}\""); then
             return 1
         fi
-        CONCATENATED_KEY="${CONCATENATED_KEY?}${CURRENT_KEY?}"
+        CONCATENATED_KEY="${CONCATENATED_KEY?}${CURRENT_HASHED_KEY?}"
     done
+    gpg2f_debug ""
+    gpg2f_debug "Hashing the concatenated key"
     if ! gpg2f_validate_and_hash_derived_key "${HASH_COMMAND?}" "${CONCATENATED_KEY?}" "concatenated derived encryption key"; then
         return 1
     fi
@@ -327,19 +361,42 @@ function gpg2f_validate_and_hash_derived_key() {
     local HASH_COMMAND="$1"
     local KEY="$2"
     local KEY_NAME="$3"
-    if [[ -z "${#KEY}" || ${#KEY} -lt ${GPG2F_MIN_DERIVED_KEY_LENGTH?} ]]; then
-        echo "ERROR: The ${KEY_NAME?} is too short (${#KEY} characters instead of ${GPG2F_MIN_DERIVED_KEY_LENGTH?})" >&2
+
+    # normalize the key
+    local NORMALIZED_KEY
+    if ! NORMALIZED_KEY=$(gpg2f_remove_line_breaks "${KEY?}"); then
+        echo "ERROR: Failed to normalize the derived key" >&2
         return 1
     fi
+    gpg2f_debug "- key: <${KEY?}>"
+    gpg2f_debug "- normalized key: <${NORMALIZED_KEY?}>"
+    if [[ -z "${#NORMALIZED_KEY}" || ${#NORMALIZED_KEY} -lt ${GPG2F_MIN_DERIVED_KEY_LENGTH?} ]]; then
+        echo "ERROR: The ${KEY_NAME?} is too short (${#NORMALIZED_KEY} characters instead of ${GPG2F_MIN_DERIVED_KEY_LENGTH?})" >&2
+        return 1
+    fi
+
+    # hash the normalized key
+    gpg2f_debug "- command: ${HASH_COMMAND?}"
     local HASHED_KEY
-    if ! HASHED_KEY=$(${HASH_COMMAND?} <<<"${KEY?}"); then
+    if ! HASHED_KEY=$(${HASH_COMMAND?} <<<"${NORMALIZED_KEY?}"); then
         echo "ERROR: Failed to hash the ${KEY_NAME?} (\"${HASH_COMMAND?}\" returned an error)" >&2
         return 1
-    elif [[ -z "${#HASHED_KEY}" || ${#HASHED_KEY} -lt ${GPG2F_MIN_DERIVED_KEY_LENGTH?} ]]; then
-        echo "ERROR: The hash of the ${KEY_NAME?} is too short (${#HASHED_KEY} characters instead of ${GPG2F_MIN_DERIVED_KEY_LENGTH?})" >&2
+    fi
+    gpg2f_debug "- hashed key: <${HASHED_KEY?}>"
+
+    # normalize the hashed key
+    local NORMALIZED_HASHED_KEY
+    if ! NORMALIZED_HASHED_KEY=$(gpg2f_remove_line_breaks "${HASHED_KEY?}"); then
+        echo "ERROR: Failed to normalize the hash of the derived key" >&2
         return 1
     fi
-    echo -n "${HASHED_KEY?}"
+    gpg2f_debug "- normalized hashed key: <${NORMALIZED_HASHED_KEY?}>"
+    if [[ -z "${#NORMALIZED_HASHED_KEY}" || ${#NORMALIZED_HASHED_KEY} -lt ${GPG2F_MIN_DERIVED_KEY_LENGTH?} ]]; then
+        echo "ERROR: The hash of the ${KEY_NAME?} is too short (${#NORMALIZED_HASHED_KEY} characters instead of ${GPG2F_MIN_DERIVED_KEY_LENGTH?})" >&2
+        return 1
+    fi
+
+    echo -n "${NORMALIZED_HASHED_KEY?}"
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -360,12 +417,36 @@ function gpg2f_run_gpg() {
         fi
         ;;
     esac
+    gpg2f_debug ""
+    gpg2f_debug "Running GnuPG to ${ENCRYPT_OR_DECRYPT?} the content"
+    gpg2f_debug "- command:" "${COMMAND_PREFIX[@]}" "${GPG2F_GPG_CMD?}"
     # shellcheck disable=SC2086
     if "${COMMAND_PREFIX[@]}" ${GPG2F_GPG_CMD?} "$@"; then
         return 0
     else
         echo "ERROR: Failed to ${ENCRYPT_OR_DECRYPT?} the content (\"${GPG2F_GPG_CMD?} $*\" returned an error)" >&2
         return 1
+    fi
+}
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Remove line breaks
+#-----------------------------------------------------------------------------------------------------------------------
+
+function gpg2f_remove_line_breaks() {
+    local DATA="$*"
+    DATA="${DATA//$'\r'/}"
+    DATA="${DATA//$'\n'/ }"
+    echo -n "${DATA?}"
+}
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Print a debug message
+#-----------------------------------------------------------------------------------------------------------------------
+
+function gpg2f_debug() {
+    if [[ "${GPG2F_DEBUG}" == "true" ]]; then
+        echo -e "[DEBUG] $*" >&2
     fi
 }
 
@@ -397,7 +478,48 @@ function with-notification() {
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Run the application
+# Run the application and unset all functions and variables
 #-----------------------------------------------------------------------------------------------------------------------
+
+function gpg2f_run_and_unset() {
+    local FUNCTIONS_TO_UNSET=(
+        gpg2f_run_and_unset
+        gpg2f_main
+        gpg2f_display_syntax_help
+        gpg2f_display_version_and_copyright
+        gpg2f_validate_configuration
+        gpg2f_encrypt
+        gpg2f_decrypt
+        gpg2f_generate_random_seed
+        gpg2f_normalize_seed
+        gpg2f_derive_encryption_key
+        gpg2f_validate_and_hash_derived_key
+        gpg2f_run_gpg
+    )
+    local CONFIG_VARIABLES_TO_UNSET=(
+        GPG2F_GPG_CMD
+        GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS
+        GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS
+        GPG2F_GPG_DECRYPTION_OPTIONS
+        GPG2F_DECRYPTION_KEY_DERIVATION_CMD
+        GPG2F_ENCRYPTION_KEY_DERIVATION_CMD
+        GPG2F_MIN_DERIVED_KEY_LENGTH
+        GPG2F_GENERATE_SEED_CMD
+        GPG2F_GENERATED_SEED_EXPECTED_LENGTH
+        GPG2F_HASH_DERIVED_DECRYPTION_KEY_CMD
+        GPG2F_HASH_DERIVED_ENCRYPTION_KEY_CMD
+        GPG2F_NOTIFICATION_CMD
+        GPG2F_DEFAULT_NOTIFICATION_OPTIONS
+    )
+    local OTHER_VARIABLES_TO_UNSET=(
+        GPG2F_DEBUG
+    )
+    local EXIT_CODE
+    gpg2f_main "$@"
+    EXIT_CODE=$?
+    unset "${FUNCTIONS_TO_UNSET?}" "${CONFIG_VARIABLES_TO_UNSET?}" "${OTHER_VARIABLES_TO_UNSET?}"
+    unset FUNCTIONS_TO_UNSET CONFIG_VARIABLES_TO_UNSET OTHER_VARIABLES_TO_UNSET
+    return ${EXIT_CODE?}
+}
 
 gpg2f_run_and_unset "$@"
