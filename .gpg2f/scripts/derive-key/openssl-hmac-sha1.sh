@@ -15,10 +15,14 @@ function gpg2f_challenge_response_openssl() {
         echo "ERROR: File ${ENCRYPTED_FILE?} does not exist" >&2
         return 1
     fi
+    if [[ ! -f ".gpg2f/scripts/gpg/decrypt-file-to-stdout.sh" ]]; then
+        echo "ERROR: $(pwd)/.gpg2f/scripts/gpg/decrypt-file-to-stdout.sh does not exist" &>2
+        return 1
+    fi
     local SECRET
     # shellcheck disable=SC1091
-    if ! SECRET=$(. .gpg2/scripts/gpg/decrypt "$1"); then
-        echo "ERROR: Failed to decrypt \"$1\" (\". .gpg2/scripts/gpg/decrypt $1\" returned an error)" >&2
+    if ! SECRET=$(. .gpg2f/scripts/gpg/decrypt-file-to-stdout.sh "$1"); then
+        echo "ERROR: Failed to decrypt \"$1\" (\". .gpg2f/scripts/gpg/decrypt $1\" returned an error)" >&2
         return 1
     fi
     SECRET="${SECRET//$'\r'/}"

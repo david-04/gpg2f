@@ -9,9 +9,9 @@
 
 export GPG2F_GPG_CMD="gpg2 --quiet --no-permission-warning --batch"
 
-export GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS="--cipher-algo AES256"
-export GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS=""
-export GPG2F_GPG_DECRYPTION_OPTIONS=""
+export GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS="--armor --symmetric --cipher-algo AES256 "
+export GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS="--armor "
+export GPG2F_GPG_DECRYPTION_OPTIONS="--decrypt"
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Random seed generation
@@ -68,9 +68,15 @@ export GPG2F_GENERATED_SEED_EXPECTED_LENGTH="126"
 
 export GPG2F_DECRYPTION_KEY_DERIVATION_CMD=(
     "NOTIFICATION_OPTIONS='option1=true option2=false' with-notification 'Touch the YubiKey' . .gpg2f/scripts/derive-key/yubikey-challenge-response.sh 2"
+    ".gpg2f/scripts/gpg/decrypt-file-to-stdout.sh .gpg2f/examples/keys/static-password.example.gpg"
 )
 
 export GPG2F_ENCRYPTION_KEY_DERIVATION_CMD=("${GPG2F_DECRYPTION_KEY_DERIVATION_CMD[@]}")
+
+export GPG2F_ENCRYPTION_KEY_DERIVATION_CMD=(
+    ". .gpg2f/scripts/derive-key/openssl-hmac-sha1.sh .gpg2f/examples/keys/hmac-sha1-secret.example.gpg"
+    ".gpg2f/scripts/gpg/decrypt-file-to-stdout.sh .gpg2f/examples/keys/static-password.example.gpg"
+)
 
 export GPG2F_MIN_DERIVED_KEY_LENGTH=20
 
@@ -82,7 +88,7 @@ export GPG2F_MIN_DERIVED_KEY_LENGTH=20
 # . .gpg2f/scripts/calculate-hash/openssl-sha512.sh ... generate SHA-512 via OpenSSL
 #-----------------------------------------------------------------------------------------------------------------------
 
-export GPG2F_HASH_DERIVED_DECRYPTION_KEY_CMD=". .gpg2f/scripts/calculate-hash/openssl-sha512.sh"
+export GPG2F_HASH_DERIVED_DECRYPTION_KEY_CMD=". .gpg2f/scripts/calculate-hash/openssl-sha256.sh"
 export GPG2F_HASH_DERIVED_ENCRYPTION_KEY_CMD="${GPG2F_HASH_DERIVED_DECRYPTION_KEY_CMD?}"
 
 #-----------------------------------------------------------------------------------------------------------------------
