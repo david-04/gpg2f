@@ -117,7 +117,7 @@ function gpg2f_encrypt() {
         exec >"${OUTPUT_FILE?}.tmp"
     fi
     echo "$SEED"
-    if ! gpg2f_run_gpg "enrypt" "${GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS[@]}" --passphrase-fd 3 --output - 3<<<"${ENCRYPTION_KEY?}"; then
+    if ! gpg2f_run_script .gpg2f/scripts/gpg/encrypt-stdin-symmetrically-to-stdout.sh --passphrase-fd 3 3<<<"${ENCRYPTION_KEY?}"; then
         if [[ -n "${OUTPUT_FILE}" ]]; then
             exec >&1
             rm -f "${OUTPUT_FILE?}.tmp" 2>/dev/null
@@ -172,7 +172,7 @@ function gpg2f_decrypt() {
     gpg2f_debug "Decrypting"
     gpg2f_debug "- seed: <${SEED?}>"
     gpg2f_debug "- encryption key: <${ENCRYPTION_KEY?}>"
-    gpg2f_run_gpg "decrypt" "${GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS[@]}" --passphrase-fd 3 --output - 3<<<"${ENCRYPTION_KEY?}"
+    gpg2f_run_script .gpg2f/scripts/gpg/decrypt-stdin-to-stdout.sh --passphrase-fd 3 3<<<"${ENCRYPTION_KEY?}"
     local EXIT_CODE=$?
     exec <&0
     return ${EXIT_CODE}
@@ -350,29 +350,33 @@ function gpg2f_validate_and_hash_derived_key() {
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Run GnuPG
+# Run the given command in the current bash
 #-----------------------------------------------------------------------------------------------------------------------
-# $1 ... operation description "encrypt" or "decrypt"
-# $* ... pass-through GnuPG arguments
+# $1 ... the script to run
+# $* ... pass-through parameters
 #-----------------------------------------------------------------------------------------------------------------------
 
-function gpg2f_run_gpg() {
-    local ENCRYPT_OR_DECRYPT="$1"
+function gpg2f_run_script() {
+
+    # validate and extract parameters
+    if [[ $# -eq 0 ]]; then
+        echo "ERROR: No arguments passed to gpg2f_run_script" >&2
+        return 1
+    fi
+    local SCRIPT="$1"
     shift
-    local COMMAND_PREFIX=()
-    case "$(uname -s)" in
-    CYGWIN*)
-        if [[ -n "$HOME" ]]; then
-            COMMAND_PREFIX=(env "HOME=$(cygpath "${HOME?}")")
-        fi
-        ;;
-    esac
-    local COMMAND=("${COMMAND_PREFIX[@]}" "${GPG2F_GPG_CMD[@]}" "$@")
+
+    # Verify that the script exists
+    if [[ ! -f "${SCRIPT?}" ]]; then
+        echo "ERROR: $(pwd)/${SCRIPT} does not exist" >&2
+        return 1
+    fi
+
+    # run the command
     gpg2f_debug "- command:" "${COMMAND[@]}"
-    if "${COMMAND[@]}"; then
-        return 0
-    else
-        echo "ERROR: Failed to ${ENCRYPT_OR_DECRYPT?}, command \"${COMMAND[*]}\" returned an error" >&2
+    # shellcheck disable=SC1090
+    if ! . "${SCRIPT?}" "$@"; then
+        echo "ERROR: Command ${SCRIPT?}" "$@" "returned an error" >&2
         return 1
     fi
 }
@@ -461,7 +465,7 @@ function gpg2f_run_and_unset() {
         gpg2f_normalize_seed
         gpg2f_derive_encryption_key
         gpg2f_validate_and_hash_derived_key
-        gpg2f_run_gpg
+        gpg2f_run_script
         gpg2f_remove_line_breaks
         gpg2f_debug
         with-notification

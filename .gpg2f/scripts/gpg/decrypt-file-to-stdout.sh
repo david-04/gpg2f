@@ -26,7 +26,7 @@ function gpg2f_decrypt_file_to_stdout() {
     if [[ ! -f .gpg2f/scripts/utils/gpg-base-command.sh ]]; then
         echo "ERROR: $(pwd)/.gpg2f/scripts/utils/gpg-base-command.sh does not exist" >&2
         return 1
-    elif ! . .gpg2f/scripts/utils/gpg-base-command.sh decrypt "$@" --decrypt "${INPUT_FILE?}"; then
+    elif ! . .gpg2f/scripts/utils/gpg-base-command.sh decrypt "$@" --output - --decrypt "${INPUT_FILE?}"; then
         echo "ERROR: Failed to decrypt ${INPUT_FILE?}" >&2
         return 1
     fi

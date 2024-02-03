@@ -56,6 +56,11 @@ function gpg2f_gpg_base_command() {
     # assemble command: append optional parameters passed to this script
     COMMAND=("${COMMAND[@]}" "$@")
 
+    # print the command if debug mode is enabled
+    if [[ "${GPG2F_DEBUG}" == "true" ]]; then
+        echo "- ${COMMAND[*]}" >&2
+    fi
+
     # execute the command
     if ! "${COMMAND[@]}"; then
         echo "ERROR: Command \"${COMMAND[*]}\" returned an error" >&2
