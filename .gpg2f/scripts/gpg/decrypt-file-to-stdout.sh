@@ -11,7 +11,7 @@ function gpg2f_decrypt_file_to_stdout() {
 
     # extract and validate parameters
     if [[ $# -eq 0 ]]; then
-        echo "ERROR: Missing command line arguments. Syntax: .gnupg/scripts/gpg/decrypt-file-to-stdout.sh [file] [additional-gpg-options]" >&2
+        echo "ERROR: Missing command line arguments (syntax: .gnupg/scripts/gpg/decrypt-file-to-stdout.sh [file] [additional-gpg-options])" >&2
         return 1
     fi
     local INPUT_FILE="$1"
@@ -21,23 +21,12 @@ function gpg2f_decrypt_file_to_stdout() {
         return 1
     fi
 
-    # load configuration (if not already present)
-    if [[ -z "${GPG2F_GPG_CMD[*]}" || ! "$(declare -p GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS)" =~ "declare -a" || ! "$(declare -p GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS)" =~ "declare -a" || -z "${GPG2F_GPG_DECRYPTION_OPTIONS+x}" ]]; then
-        if [[ ! -f ".gpg2f/scripts/utils/load-and-validate-config.sh" ]]; then
-            echo "ERROR: $(pwd)/.gpg2f/scripts/utils/load-and-validate-config.sh does not exist" >&2
-            return 1
-        elif ! . .gpg2f/scripts/utils/load-and-validate-config.sh; then
-            # shellcheck disable=SC2317
-            return 1
-        fi
-    fi
-
-    # assemle and execute the command
+    # decrypt the file
     # shellcheck disable=SC2317
-    if [[ ! -f ".gpg2f/scripts/utils/gpg-base-command.sh" ]]; then
+    if [[ ! -f .gpg2f/scripts/utils/gpg-base-command.sh ]]; then
         echo "ERROR: $(pwd)/.gpg2f/scripts/utils/gpg-base-command.sh does not exist" >&2
         return 1
-    elif ! . .gpg2f/scripts/utils/gpg-base-command.sh "${GPG2F_GPG_DECRYPTION_OPTIONS[@]}" "$@" --decrypt "${INPUT_FILE?}"; then
+    elif ! . .gpg2f/scripts/utils/gpg-base-command.sh decrypt "$@" --decrypt "${INPUT_FILE?}"; then
         echo "ERROR: Failed to decrypt ${INPUT_FILE?}" >&2
         return 1
     fi

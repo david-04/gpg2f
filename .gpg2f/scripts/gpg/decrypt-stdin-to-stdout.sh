@@ -8,26 +8,16 @@
 
 function gpg2f_decrypt_stdin_to_stdout() {
 
-    # load configuration (if not already present)
-    if [[ -z "${GPG2F_GPG_CMD[*]}" || ! "$(declare -p GPG2F_GPG_SYMMETRIC_ENCRYPTION_OPTIONS)" =~ "declare -a" || ! "$(declare -p GPG2F_GPG_ASYMMETRIC_ENCRYPTION_OPTIONS)" =~ "declare -a" || -z "${GPG2F_GPG_DECRYPTION_OPTIONS+x}" ]]; then
-        if [[ ! -f ".gpg2f/scripts/utils/load-and-validate-config.sh" ]]; then
-            echo "ERROR: $(pwd)/.gpg2f/scripts/utils/load-and-validate-config.sh does not exist" >&2
-            return 1
-        elif ! . .gpg2f/scripts/utils/load-and-validate-config.sh; then
-            # shellcheck disable=SC2317
-            return 1
-        fi
-    fi
-
-    # assemle and execute the command
+    # decrypt stdin
     # shellcheck disable=SC2317
-    if [[ ! -f ".gpg2f/scripts/utils/gpg-base-command.sh" ]]; then
+    if [[ ! -f .gpg2f/scripts/utils/gpg-base-command.sh ]]; then
         echo "ERROR: $(pwd)/.gpg2f/scripts/utils/gpg-base-command.sh does not exist" >&2
         return 1
-    elif ! . .gpg2f/scripts/utils/gpg-base-command.sh "${GPG2F_GPG_DECRYPTION_OPTIONS[@]}" "$@" --decrypt; then
-        echo "ERROR: Failed to decrypt stdin" >&2
+    elif ! . .gpg2f/scripts/utils/gpg-base-command.sh decrypt "$@" --decrypt; then
+        echo "ERROR: Failed to decrypt ${INPUT_FILE?}" >&2
         return 1
     fi
+
 }
 
 # shellcheck disable=SC2317
