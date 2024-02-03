@@ -58,7 +58,7 @@ function gpg2f_gpg_base_command() {
 
     # print the command if debug mode is enabled
     if [[ "${GPG2F_DEBUG}" == "true" ]]; then
-        echo "- ${COMMAND[*]}" >&2
+        echo "[DEBUG] - command: ${COMMAND[*]}" >&2
     fi
 
     # execute the command
