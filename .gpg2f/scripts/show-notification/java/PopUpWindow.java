@@ -1,3 +1,5 @@
+import static java.lang.Math.max;
+import static java.lang.Math.min;
 import static java.lang.Math.round;
 import static java.lang.System.getenv;
 import static java.util.Optional.empty;
@@ -33,7 +35,8 @@ import javax.swing.border.EmptyBorder;
 // Display a pop-up window with the given message. Supported options:
 //----------------------------------------------------------------------------------------------------------------------
 // background-color=#ffd232 .... background color as hex representation
-// font=Helvetica .............. font name
+// fly-in-duration=2s .......... duration during which the dialog slides into view
+// font=Segoe UI ............... font name
 // font-size=24 ................ font size in points
 // padding=20 .................. horizontal and vertical padding between the text and the window borders
 // timeout=10s ................. auto-hide the notification (supported units: s, m, h, d, duration is float)
@@ -43,6 +46,7 @@ import javax.swing.border.EmptyBorder;
 public class PopUpWindow {
 
     private final Color backgroundColor;
+    private final Optional<Long> flyInDuration;
     private final Font font;
     private final String message;
     private final int padding;
@@ -55,6 +59,7 @@ public class PopUpWindow {
 
     public PopUpWindow(String message, Map<String, String> config) {
         this.backgroundColor = getConfigValue(config, "background-color", Color::decode, new Color(255, 210, 50));
+        this.flyInDuration = getConfigValue(config, "fly-in-duration", PopUpWindow::parseDuration, of(0L));
         this.font = ofNullable(config.get("font")).map(Font::decode).orElse(
                 new JLabel("").getFont()).deriveFont(getConfigValue(config, "font-size", Float::parseFloat, 24f));
         this.message = message;
@@ -136,11 +141,11 @@ public class PopUpWindow {
                 System.exit(0);
             }
         };
-        getConfigValue(config, "timeout", PopUpWindow::parseTimeout, Optional.<Long>empty())
+        getConfigValue(config, "timeout", PopUpWindow::parseDuration, Optional.<Long>empty())
                 .ifPresent(timeoutMs -> new Timer().schedule(timerTask, timeoutMs));
     }
 
-    private static Optional<Long> parseTimeout(String timeout) {
+    private static Optional<Long> parseDuration(String timeout) {
         Map<String, Long> unitToMultiplier = new HashMap<>();
         unitToMultiplier.put("s", 1000L);
         unitToMultiplier.put("m", 1000L * 60);
@@ -280,23 +285,53 @@ public class PopUpWindow {
         int paddingCenter = screenHeight / 15;
         int paddingCorner = 75;
         if (windowPosition.matches("N|NORTH")) {
-            frame.setLocation(halfScreenWidth - halfWindowWidth, paddingCenter);
+            scheduleFlyInDuration(frame, halfScreenWidth - halfWindowWidth, -windowHeight,
+                    halfScreenWidth - halfWindowWidth, paddingCenter);
         } else if (windowPosition.matches("NE|NORTHEAST|NORTH-EAST")) {
-            frame.setLocation(screenWidth - windowWidth - paddingCorner, paddingCorner);
+            scheduleFlyInDuration(frame, screenWidth + windowWidth, paddingCorner,
+                    screenWidth - windowWidth - paddingCorner, paddingCorner);
         } else if (windowPosition.matches("E|EAST")) {
-            frame.setLocation(screenWidth - windowWidth - paddingCenter, halfScreenHeight - halfWindowHeight);
+            scheduleFlyInDuration(frame, screenWidth + windowWidth, halfScreenHeight - halfWindowHeight,
+                    screenWidth - windowWidth - paddingCenter, halfScreenHeight - halfWindowHeight);
         } else if (windowPosition.matches("SE|SOUTHEAST|SOUTH-EAST")) {
-            frame.setLocation(screenWidth - windowWidth - paddingCorner, screenHeight - windowHeight - paddingCorner);
+            scheduleFlyInDuration(frame, screenWidth + windowWidth, screenHeight - windowHeight - paddingCorner,
+                    screenWidth - windowWidth - paddingCorner, screenHeight - windowHeight - paddingCorner);
         } else if (windowPosition.matches("S|SOUTH")) {
-            frame.setLocation(halfScreenWidth - halfWindowWidth, screenHeight - windowHeight - paddingCenter);
+            scheduleFlyInDuration(frame, halfScreenWidth - halfWindowWidth, screenHeight + windowHeight,
+                    halfScreenWidth - halfWindowWidth, screenHeight - windowHeight - paddingCenter);
         } else if (windowPosition.matches("SW|SOUTHWEST|SOUTH-WEST")) {
-            frame.setLocation(paddingCorner, screenHeight - windowHeight - paddingCorner);
+            scheduleFlyInDuration(frame, -windowWidth, screenHeight - windowHeight - paddingCorner, paddingCorner,
+                    screenHeight - windowHeight - paddingCorner);
         } else if (windowPosition.matches("W|WEST")) {
-            frame.setLocation(paddingCenter, halfScreenHeight - halfWindowHeight);
+            scheduleFlyInDuration(frame, -windowWidth, halfScreenHeight - halfWindowHeight, paddingCenter,
+                    halfScreenHeight - halfWindowHeight);
         } else if (windowPosition.matches("NW|NORTHWEST|NORTH-WEST")) {
-            frame.setLocation(paddingCorner, paddingCorner);
+            scheduleFlyInDuration(frame, -windowWidth, paddingCorner, paddingCorner, paddingCorner);
         } else {
-            frame.setLocation(halfScreenWidth - halfWindowWidth, halfScreenHeight - halfWindowHeight);
+            scheduleFlyInDuration(frame, halfScreenWidth - halfWindowWidth, halfScreenHeight - halfWindowHeight,
+                    halfScreenWidth - halfWindowWidth, halfScreenHeight - halfWindowHeight);
         }
     }
+
+    private void scheduleFlyInDuration(JFrame frame, int startColumn, int startRow, int endColumn, int endRow) {
+        if (flyInDuration.isPresent()) {
+            final long start = System.currentTimeMillis();
+            Timer timer = new Timer();
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    float percent = (System.currentTimeMillis() - start) * 1f / flyInDuration.get();
+                    double smoothedPercent = min(1, max(0, Math.sqrt(percent / 2) * 1.42));
+                    frame.setLocation((int) round(startColumn + (endColumn - startColumn) * smoothedPercent),
+                            (int) round(startRow + (endRow - startRow) * smoothedPercent));
+                    if (1 < percent) {
+                        timer.cancel();
+                    }
+                }
+            }, 0, 3);
+        } else {
+            frame.setLocation(endColumn, endRow);
+        }
+    }
+
 }

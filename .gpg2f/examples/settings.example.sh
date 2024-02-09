@@ -102,21 +102,23 @@ export GPG2F_HASH_ENCRYPTION_KEY_CMD=("${GPG2F_HASH_DECRYPTION_KEY_CMD[@]}")
 export GPG2F_NOTIFICATION_CMD=(. .gpg2f/scripts/show-notification/auto.sh)
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Notification options are specific to the notifier. The PowerShell notifier ignores all options. Java supports the
-# following options:
+# Default options to customize the notification pop-up. The are specified as space-separated key=value pairs:
 #
-#    background-color=#c425dd ......... window background color (Java notifier only)
-#    delay=1s ......................... delay before showing the notification
-#    font-size=24 ..................... text size (Java notifier only)
-#    position=[N|NE|E|SE|S|SW|W|NW] ... window position (Java notifier only)
-#    timeout=5s ....................... auto-hide the notification after this duration (Java notifier only)
+#   "delay=1s timeout=5s"
 #
-# Options are specified as space-separated key=value pairs, for example:
+# Values can contain whitespace but no equal sign. Options are notifier-specific. Not all notifiers support all of them.
 #
-#    "delay=1s timeout=5s"
+#   background-color=#c425dd ..................  window background color (Java notifier only)
+#   delay=1s .................................. delay before showing the notification
+#   fly-in-duration=2s ........................ duration during which the dialog slides into view (Java notifier only)
+#   font=Segoe UI ............................. font name  (Java notifier only)
+#   font-size=24 .............................. text size (Java notifier only)
+#   padding=20 ................................ horizontal and vertical padding between the text and the window borders
+#   timeout=5s ................................ auto-hide the notification after this duration (Java notifier only)
+#   window-position=[C|N|NE|E|SE|S|SW|W|NW] ... window position (Java notifier only, default is C [center])
 #
-# There must not be any whitespace within a key-value pair.
+# The default options can be overriden by setting the environment variable NOTIFICATION_OPTIONS in any of the
+# GPG2F_DERIVE_DECRYPTION_KEY_CMD commands
 #-----------------------------------------------------------------------------------------------------------------------
 
 export GPG2F_DEFAULT_NOTIFICATION_OPTIONS=(delay=1s)
-export GPG2F_DEFAULT_NOTIFICATION_OPTIONS=()
