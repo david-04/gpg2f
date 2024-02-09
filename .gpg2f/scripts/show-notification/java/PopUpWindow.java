@@ -9,6 +9,7 @@ import java.awt.Color;
 import java.awt.Container;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
@@ -32,6 +33,7 @@ import javax.swing.border.EmptyBorder;
 // Display a pop-up window with the given message. Supported options:
 //----------------------------------------------------------------------------------------------------------------------
 // background-color=#ffd232 .... background color as hex representation
+// font=Helvetica .............. font name
 // font-size=24 ................ font size in points
 // padding=20 .................. horizontal and vertical padding between the text and the window borders
 // timeout=10s ................. auto-hide the notification (supported units: s, m, h, d, duration is float)
@@ -41,7 +43,7 @@ import javax.swing.border.EmptyBorder;
 public class PopUpWindow {
 
     private final Color backgroundColor;
-    private final float fontSize;
+    private final Font font;
     private final String message;
     private final int padding;
     private final Color textColor;
@@ -53,7 +55,8 @@ public class PopUpWindow {
 
     public PopUpWindow(String message, Map<String, String> config) {
         this.backgroundColor = getConfigValue(config, "background-color", Color::decode, new Color(255, 210, 50));
-        this.fontSize = getConfigValue(config, "font-size", Float::parseFloat, 24f);
+        this.font = ofNullable(config.get("font")).map(Font::decode).orElse(
+                new JLabel("").getFont()).deriveFont(getConfigValue(config, "font-size", Float::parseFloat, 24f));
         this.message = message;
         this.padding = getConfigValue(config, "padding", Integer::parseInt, 20).intValue();
         this.textColor = backgroundColor.getGreen() + backgroundColor.getRed() + backgroundColor.getBlue() < 383
@@ -255,7 +258,7 @@ public class PopUpWindow {
 
     private JLabel createLabel(String message) {
         JLabel label = new JLabel(message);
-        label.setFont(label.getFont().deriveFont(fontSize));
+        label.setFont(font);
         label.setForeground(textColor);
         return label;
     }
