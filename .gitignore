@@ -1,5 +1,10 @@
+/*
+!/.gpg2f
 /.gpg2f/docs
 /.gpg2f/scripts/show-notification/java/*.class
-/CHANGELOG.md
-/passwordstore
-/README.md
+!/.gitignore
+!/decrypt.bat
+!/decrypt.sh
+!/encrypt.bat
+!/encrypt.sh
+!/LICENSE

@@ -24,10 +24,10 @@ function gpg2f_load_config() {
     # shellcheck disable=SC1091
     if [[ -f "./settings.sh" ]]; then
         source "./settings.sh"
-    elif [[ -f "./.gpg2f/examples/settings.example.sh" ]]; then
-        source "./.gpg2f/examples/settings.example.sh"
+    elif [[ -f "./.gpg2f/templates/config/settings.example.sh" ]]; then
+        source "./.gpg2f/templates/config/settings.example.sh"
     else
-        echo "ERROR: Neither $(pwd)/settings.sh nor $(pwd)/.gpg2f/examples.settings.example.sh exists"
+        echo "ERROR: Neither $(pwd)/settings.sh nor $(pwd)/.gpg2f/templates/config/settings.example.sh exists"
         return 1
     fi
 }
