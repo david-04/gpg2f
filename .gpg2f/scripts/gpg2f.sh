@@ -194,8 +194,8 @@ function gpg2f_generate_random_seed() {
     local NORMALIZED
     NORMALIZED=$(gpg2f_normalize_seed "${SEED?}")
     gpg2f_debug "- normalized seed: <${NORMALIZED?}>"
-    if [[ ${#NORMALIZED} -ne ${GPG2F_GENERATED_SEED_EXPECTED_LENGTH?} ]]; then
-        echo "ERROR: The generated random seed <${NORMALIZED}> has ${#NORMALIZED} characters (expected: ${GPG2F_GENERATED_SEED_EXPECTED_LENGTH?})" >&2
+    if [[ ${#NORMALIZED} -ne ${GPG2F_EXPECTED_SEED_LENGTH?} ]]; then
+        echo "ERROR: The generated random seed <${NORMALIZED}> has ${#NORMALIZED} characters (expected: ${GPG2F_EXPECTED_SEED_LENGTH?})" >&2
         return 1
     fi
     echo -n "${NORMALIZED?}"
@@ -320,8 +320,8 @@ function gpg2f_validate_and_hash_derived_key() {
     fi
     gpg2f_debug "- key: <${KEY?}>"
     gpg2f_debug "- normalized: <${NORMALIZED_KEY?}>"
-    if [[ -z "${#NORMALIZED_KEY}" || ${#NORMALIZED_KEY} -lt ${GPG2F_MIN_DERIVED_KEY_LENGTH?} ]]; then
-        echo "ERROR: The ${KEY_NAME?} is too short (${#NORMALIZED_KEY} characters instead of ${GPG2F_MIN_DERIVED_KEY_LENGTH?})" >&2
+    if [[ -z "${#NORMALIZED_KEY}" || ${#NORMALIZED_KEY} -lt ${GPG2F_MIN_EXPECTED_KEY_LENGTH?} ]]; then
+        echo "ERROR: The ${KEY_NAME?} is too short (${#NORMALIZED_KEY} characters instead of ${GPG2F_MIN_EXPECTED_KEY_LENGTH?})" >&2
         return 1
     fi
 
@@ -341,11 +341,16 @@ function gpg2f_validate_and_hash_derived_key() {
         return 1
     fi
     gpg2f_debug "- normalized: <${NORMALIZED_HASHED_KEY?}>"
-    if [[ -z "${#NORMALIZED_HASHED_KEY}" || ${#NORMALIZED_HASHED_KEY} -lt ${GPG2F_MIN_DERIVED_KEY_LENGTH?} ]]; then
-        echo "ERROR: The hash of the ${KEY_NAME?} is too short (${#NORMALIZED_HASHED_KEY} characters instead of ${GPG2F_MIN_DERIVED_KEY_LENGTH?})" >&2
+    if [[ -z "${#NORMALIZED_HASHED_KEY}" ]]; then
+        echo "ERROR: The hash of the ${KEY_NAME?} is empty" >&2
+        return 1
+    elif [[ "${OPERATION?}" == "encrypt" && ${#NORMALIZED_HASHED_KEY} -ne ${GPG2F_EXPECTED_ENCRYPTION_HASH_LENGTH?} ]]; then
+        echo "ERROR: The hash of the ${KEY_NAME?} has the wrong length (${#NORMALIZED_HASHED_KEY} characters instead of ${GPG2F_EXPECTED_ENCRYPTION_HASH_LENGTH?})" >&2
+        return 1
+    elif [[ "${OPERATION?}" == "decrypt" && ${#NORMALIZED_HASHED_KEY} -ne ${GPG2F_EXPECTED_DECRYPTION_HASH_LENGTH?} ]]; then
+        echo "ERROR: The hash of the ${KEY_NAME?} has the wrong length (${#NORMALIZED_HASHED_KEY} characters instead of ${GPG2F_EXPECTED_DECRYPTION_HASH_LENGTH?})" >&2
         return 1
     fi
-
     echo -n "${NORMALIZED_HASHED_KEY?}"
 }
 
@@ -479,11 +484,12 @@ function gpg2f_run_and_unset() {
         GPG2F_GPG_DECRYPTION_OPTIONS
         GPG2F_DERIVE_DECRYPTION_KEY_CMD
         GPG2F_DERIVE_ENCRYPTION_KEY_CMD
-        GPG2F_MIN_DERIVED_KEY_LENGTH
+        GPG2F_MIN_EXPECTED_KEY_LENGTH
         GPG2F_GENERATE_SEED_CMD
-        GPG2F_GENERATED_SEED_EXPECTED_LENGTH
+        GPG2F_EXPECTED_SEED_LENGTH
         GPG2F_HASH_DECRYPTION_KEY_CMD
         GPG2F_HASH_ENCRYPTION_KEY_CMD
+        GPG2F_EXPECTED_HASH_LENGTH
         GPG2F_NOTIFICATION_CMD
         GPG2F_DEFAULT_NOTIFICATION_OPTIONS
     )

@@ -66,12 +66,12 @@ function gpg2f_validate_config() {
     elif [[ -z "${GPG2F_GENERATE_SEED_CMD[*]}" ]]; then
         echo "ERROR: GPG2F_GENERATE_SEED_CMD is not set"
     fi
-    if [[ -z "${GPG2F_GENERATED_SEED_EXPECTED_LENGTH}" ]]; then
-        echo "ERROR: GPG2F_GENERATED_SEED_EXPECTED_LENGTH is not set"
-    elif ! [ "${GPG2F_GENERATED_SEED_EXPECTED_LENGTH?}" -eq "${GPG2F_GENERATED_SEED_EXPECTED_LENGTH?}" ] 2>/dev/null; then
-        echo "ERROR: GPG2F_GENERATED_SEED_EXPECTED_LENGTH is not a number"
-    elif [[ "${GPG2F_GENERATED_SEED_EXPECTED_LENGTH?}" -lt 1 ]]; then
-        echo "ERROR: GPG2F_GENERATED_SEED_EXPECTED_LENGTH must be a positive number"
+    if [[ -z "${GPG2F_EXPECTED_SEED_LENGTH}" ]]; then
+        echo "ERROR: GPG2F_EXPECTED_SEED_LENGTH is not set"
+    elif ! [ "${GPG2F_EXPECTED_SEED_LENGTH?}" -eq "${GPG2F_EXPECTED_SEED_LENGTH?}" ] 2>/dev/null; then
+        echo "ERROR: GPG2F_EXPECTED_SEED_LENGTH is not a number"
+    elif [[ "${GPG2F_EXPECTED_SEED_LENGTH?}" -lt 1 ]]; then
+        echo "ERROR: GPG2F_EXPECTED_SEED_LENGTH must be a positive number"
     fi
     if ! declare -p GPG2F_DERIVE_DECRYPTION_KEY_CMD >/dev/null 2>&1; then
         echo "ERROR: GPG2F_DERIVE_DECRYPTION_KEY_CMD is not set"
@@ -87,12 +87,12 @@ function gpg2f_validate_config() {
     elif [[ -z "${GPG2F_DERIVE_ENCRYPTION_KEY_CMD[*]}" ]]; then
         echo "ERROR: GPG2F_DERIVE_ENCRYPTION_KEY_CMD is not set"
     fi
-    if [[ -z "${GPG2F_MIN_DERIVED_KEY_LENGTH}" ]]; then
-        echo "ERROR: GPG2F_MIN_DERIVED_KEY_LENGTH is not set"
-    elif ! [ "${GPG2F_MIN_DERIVED_KEY_LENGTH?}" -eq "${GPG2F_MIN_DERIVED_KEY_LENGTH?}" ] 2>/dev/null; then
-        echo "ERROR: GPG2F_MIN_DERIVED_KEY_LENGTH is not a number"
-    elif [[ "${GPG2F_MIN_DERIVED_KEY_LENGTH?}" -lt 1 ]]; then
-        echo "ERROR: GPG2F_MIN_DERIVED_KEY_LENGTH must be a positive number"
+    if [[ -z "${GPG2F_MIN_EXPECTED_KEY_LENGTH}" ]]; then
+        echo "ERROR: GPG2F_MIN_EXPECTED_KEY_LENGTH is not set"
+    elif ! [ "${GPG2F_MIN_EXPECTED_KEY_LENGTH?}" -eq "${GPG2F_MIN_EXPECTED_KEY_LENGTH?}" ] 2>/dev/null; then
+        echo "ERROR: GPG2F_MIN_EXPECTED_KEY_LENGTH is not a number"
+    elif [[ "${GPG2F_MIN_EXPECTED_KEY_LENGTH?}" -lt 1 ]]; then
+        echo "ERROR: GPG2F_MIN_EXPECTED_KEY_LENGTH must be a positive number"
     fi
     if ! declare -p GPG2F_HASH_DECRYPTION_KEY_CMD >/dev/null 2>&1; then
         echo "ERROR: GPG2F_HASH_DECRYPTION_KEY_CMD is not set"
@@ -107,6 +107,20 @@ function gpg2f_validate_config() {
         echo "ERROR: GPG2F_HASH_ENCRYPTION_KEY_CMD is not an array"
     elif [[ -z "${GPG2F_HASH_ENCRYPTION_KEY_CMD[*]}" ]]; then
         echo "ERROR: GPG2F_HASH_ENCRYPTION_KEY_CMD is not set"
+    fi
+    if [[ -z "${GPG2F_EXPECTED_DECRYPTION_HASH_LENGTH}" ]]; then
+        echo "ERROR: GPG2F_EXPECTED_DECRYPTION_HASH_LENGTH is not set"
+    elif ! [ "${GPG2F_EXPECTED_DECRYPTION_HASH_LENGTH?}" -eq "${GPG2F_EXPECTED_DECRYPTION_HASH_LENGTH?}" ] 2>/dev/null; then
+        echo "ERROR: GPG2F_EXPECTED_DECRYPTION_HASH_LENGTH is not a number"
+    elif [[ "${GPG2F_EXPECTED_DECRYPTION_HASH_LENGTH?}" -lt 1 ]]; then
+        echo "ERROR: GPG2F_EXPECTED_DECRYPTION_HASH_LENGTH must be a positive number"
+    fi
+    if [[ -z "${GPG2F_EXPECTED_ENCRYPTION_HASH_LENGTH}" ]]; then
+        echo "ERROR: GPG2F_EXPECTED_ENCRYPTION_HASH_LENGTH is not set"
+    elif ! [ "${GPG2F_EXPECTED_ENCRYPTION_HASH_LENGTH?}" -eq "${GPG2F_EXPECTED_ENCRYPTION_HASH_LENGTH?}" ] 2>/dev/null; then
+        echo "ERROR: GPG2F_EXPECTED_ENCRYPTION_HASH_LENGTH is not a number"
+    elif [[ "${GPG2F_EXPECTED_ENCRYPTION_HASH_LENGTH?}" -lt 1 ]]; then
+        echo "ERROR: GPG2F_EXPECTED_ENCRYPTION_HASH_LENGTH must be a positive number"
     fi
     if ! declare -p GPG2F_NOTIFICATION_CMD >/dev/null 2>&1; then
         echo "ERROR: GPG2F_NOTIFICATION_CMD is not set"
