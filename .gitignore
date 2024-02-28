@@ -1,6 +1,5 @@
 /*
 !/.gpg2f
-/.gpg2f/docs
 /.gpg2f/scripts/show-notification/java/*.class
 !/.gitignore
 !/decrypt.bat
@@ -8,3 +7,4 @@
 !/encrypt.bat
 !/encrypt.sh
 !/LICENSE
+!/README.md
