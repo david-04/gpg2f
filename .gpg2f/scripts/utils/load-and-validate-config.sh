@@ -22,12 +22,20 @@ function gpg2f_load_and_validate_config() {
 
 function gpg2f_load_config() {
     # shellcheck disable=SC1091
+    if [[ ! -f "./settings.sh" ]]; then
+        if [[ -f "./.gpg2f/templates/config/settings.example.sh" ]]; then
+            cp ./.gpg2f/templates/config/settings.example.sh ./settings.sh
+        else
+            echo "ERROR: Neither $(pwd)/settings.sh nor $(pwd)/.gpg2f/templates/config/settings.example.sh exists"
+            return 1
+        fi
+    fi
+
     if [[ -f "./settings.sh" ]]; then
+        # shellcheck disable=SC1091
         source "./settings.sh"
-    elif [[ -f "./.gpg2f/templates/config/settings.example.sh" ]]; then
-        source "./.gpg2f/templates/config/settings.example.sh"
     else
-        echo "ERROR: Neither $(pwd)/settings.sh nor $(pwd)/.gpg2f/templates/config/settings.example.sh exists"
+        echo "ERROR: $(pwd)/settings.sh does not exists"
         return 1
     fi
 }
