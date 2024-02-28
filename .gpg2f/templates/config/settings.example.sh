@@ -32,9 +32,9 @@ export GPG2F_EXPECTED_SEED_LENGTH=126
 #   - Calculate the seed's HMAC SHA-1 via YubiKey's challenge-response (the first parameter is the YubiKey slot):
 #     ". .gpg2f/scripts/derive-key/yubikey-challenge-response.sh 1"
 #   - Calculate the seed's HMAC SHA-1 locally with OpenSSL, using a secret from a GnuPG-encrypted file:
-#     ". .gpg2f/scripts/derive-key/openssl-hmac-sha1.sh .gpg2f/templates/keys/hmac-sha1-secret.example.gpg"
+#     ". .gpg2f/scripts/derive-key/openssl-hmac-sha1.sh .gpg2f/templates/keys/hmac-secret-key.example.gpg"
 #   - Extract a static password from a GnuPG-encrypted file (without using the seed)
-#     ". .gpg2f/scripts/gpg/decrypt-file-to-stdout.sh .gpg2f/templates/keys/static-password.example.gpg"
+#     ". .gpg2f/scripts/gpg/decrypt-file-to-stdout.sh .gpg2f/templates/keys/static-key.example.gpg"
 #
 # The "with-notification" function can be used to show a pop-up for commands that require user interaction:
 #
@@ -50,10 +50,10 @@ export GPG2F_EXPECTED_SEED_LENGTH=126
 #-----------------------------------------------------------------------------------------------------------------------
 
 export GPG2F_DERIVE_DECRYPTION_KEY_CMD=(
-    ". .gpg2f/scripts/derive-key/openssl-hmac-sha1.sh .gpg2f/templates/keys/hmac-sha1-secret.example.gpg"
+    ".gpg2f/scripts/gpg/decrypt-file-to-stdout.sh .gpg2f/templates/keys/static-key.example.gpg"
+    ". .gpg2f/scripts/derive-key/openssl-hmac-sha1.sh .gpg2f/templates/keys/hmac-secret-key.example.gpg"
     # To use a YubiKey, replace the line above with the one below
     # "with-notification 'Touch the YubiKey' . .gpg2f/scripts/derive-key/yubikey-challenge-response.sh 1"
-    ".gpg2f/scripts/gpg/decrypt-file-to-stdout.sh .gpg2f/templates/keys/static-password.example.gpg"
 )
 export GPG2F_DERIVE_ENCRYPTION_KEY_CMD=("${GPG2F_DERIVE_DECRYPTION_KEY_CMD[@]}")
 export GPG2F_MIN_EXPECTED_KEY_LENGTH=20
