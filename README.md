@@ -37,13 +37,13 @@ Generating a random seed before encrypting content adds an extra layer of securi
 `gpg2f` can be downloaded from <https://github.com/david-04/gpg2f/releases> or cloned as a repository:
 
 ```shell
-git clone https://github.com/david-04/gpg2f.git
+git clone --depth 1 https://github.com/david-04/gpg2f.git
 ```
 
 Upgrading to a newer release involves either downloading and extracting it over the previous installation or running `git pull` in the cloned repository. After extracting/cloning/updating the application, make the following scripts executable:
 
 ```shell
-chmod +x decrypt.sh encrypt.sh .gpg2f/scripts/pass-gpg-shim.sh
+chmod +x decrypt.sh encrypt.sh `find .gpg2f -name '*.sh'`
 ```
 
 To verify that all required programs are installed and working, run the command below. When prompted for a password, enter `x` (a single lowercase letter).
