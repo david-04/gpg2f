@@ -58,10 +58,11 @@ public class PopUpWindow {
     //------------------------------------------------------------------------------------------------------------------
 
     public PopUpWindow(String message, Map<String, String> config) {
-        this.backgroundColor = getConfigValue(config, "background-color", Color::decode, new Color(255, 210, 50));
+        this.backgroundColor = getConfigColor(config, "background-color", new Color(250, 172, 20));
         this.flyInDuration = getConfigValue(config, "fly-in-duration", PopUpWindow::parseDuration, of(0L));
         this.font = ofNullable(config.get("font")).map(Font::decode).orElse(
-                new JLabel("").getFont()).deriveFont(getConfigValue(config, "font-size", Float::parseFloat, 24f));
+                new JLabel("").getFont()).deriveFont(getConfigValue(config, "font-size", Float::parseFloat, 24f))
+                .deriveFont(Font.PLAIN);
         this.message = message;
         this.padding = getConfigValue(config, "padding", Integer::parseInt, 20).intValue();
         this.textColor = backgroundColor.getGreen() + backgroundColor.getRed() + backgroundColor.getBlue() < 383
@@ -176,11 +177,24 @@ public class PopUpWindow {
     private static <T> T getConfigValue(Map<String, String> config, String key, Function<String, T> parse,
             T defaultValue) {
         try {
-            return ofNullable(config.get(key)).map(parse).orElse(defaultValue);
+            return ofNullable(config.get(key)).map(String::trim).map(parse).orElse(defaultValue);
         } catch (Exception ignored) {
             ignored.printStackTrace(System.err);
             return defaultValue;
         }
+    }
+
+    private static Color getConfigColor(Map<String, String> config, String key, Color defaultValue) {
+        try {
+            String value = getConfigValue(config, key, String::trim, "");
+            if (!value.isEmpty()) {
+                return value.startsWith("#") ? Color.decode(value) : Color.decode("#" + value);
+            }
+        } catch (Exception ignored) {
+            ignored.printStackTrace(System.err);
+        }
+        return defaultValue;
+
     }
 
     //------------------------------------------------------------------------------------------------------------------

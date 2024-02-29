@@ -94,12 +94,12 @@ export GPG2F_EXPECTED_ENCRYPTION_HASH_LENGTH="${GPG2F_EXPECTED_DECRYPTION_HASH_L
 # as an array of key=value pairs. Values (like the font name) can contain blanks. Most options are only supported by
 # the Java notifier. The PowerShell notifier only supports the "delay" option.
 #
-#   background-color=#c425dd .................. window background color
+#   background-color=#faac14 .................. pop-up background color
 #   delay=1s .................................. delay before showing the notification
 #   fly-in-duration=2s ........................ duration during which the dialog slides into view
 #   font=Segoe UI ............................. font name
 #   font-size=24 .............................. text size
-#   padding=20 ................................ padding between the text and the window
+#   padding=20 ................................ padding between the text and the window (in pixels)
 #   timeout=5s ................................ auto-hide the notification after this duration
 #   window-position=[C|N|NE|E|SE|S|SW|W|NW] ... window position (default is C for center)
 #
@@ -108,4 +108,4 @@ export GPG2F_EXPECTED_ENCRYPTION_HASH_LENGTH="${GPG2F_EXPECTED_DECRYPTION_HASH_L
 #-----------------------------------------------------------------------------------------------------------------------
 
 export GPG2F_NOTIFICATION_CMD=(. .gpg2f/scripts/show-notification/auto.sh)
-export GPG2F_DEFAULT_NOTIFICATION_OPTIONS=(delay=1s fly-in-duration=2s window-position=N)
+export GPG2F_DEFAULT_NOTIFICATION_OPTIONS=(background-color=#faac14 fly-in-duration=1s window-position=C)
