@@ -114,13 +114,13 @@ This should print a very long random string like this:
 Now generate a random key, encrypt it with the GNU Privacy Guard and store it in `.keys/static-key.gpg`. This will prompt for a passphrase. Although the GNU Privacy Guard Agent caches the passphrase for a while, it will still need to be entered quite frequently.
 
 ```shell
-.gpg2f/scripts/generate-seed/openssl-hex.sh 100 | gpg2 --quiet --no-permission-warning --armor --symmetric --cipher-algo AES256 --output .keys/static-key.gpg
+.gpg2f/scripts/generate-seed/openssl-hex.sh 100 | gpg2 --quiet --no-permission-warning --armor --symmetric --cipher-algo AES256 --s2k-digest-algo SHA512 --output .keys/static-key.gpg
 ```
 
 The next step is to generate an HMAC challenge-response secret key. The approach is the same as for the static key: Generate a random string with OpenSSL, encrypt it with the GNU Privacy Guard, and save it in `.keys/hmac-secret-key.gpg`. Please note that there are only rare occasions when this file needs to be decrypted and the passphrase has to be entered. It might be needed only after a long time, when the YubiKey is lost or stops working. Make sure that you can still remember or recover the passphrase.
 
 ```shell
-.gpg2f/scripts/generate-seed/openssl-hex.sh 20 | gpg2 --quiet --no-permission-warning --armor --symmetric --cipher-algo AES256 --output .keys/hmac-secret-key.gpg
+.gpg2f/scripts/generate-seed/openssl-hex.sh 20 | gpg2 --quiet --no-permission-warning --armor --symmetric --cipher-algo AES256 --s2k-digest-algo SHA512 --output .keys/hmac-secret-key.gpg
 ```
 
 Now the secret key can be copied to the YubiKey. The command below uses the `ykman` command-line utility (part of the YubiKey Manager). It configures slot 1 for challenge-response. Change the parameter at the end of the command from `1` to `2` to configure slot 2 instead. Please note that this command will overwrite the slot's current configuration without additional prompt.
@@ -298,31 +298,32 @@ This should produce the following output:
 WEUSESYMMETRICENCRYPTIONANDDONOTNEEDAKEY
 ```
 
-To use QtPass with the newly created password store (and `gpg2f`), open QtPass' configuration dialog. In the `Programs` tab, make sure that `Native Git/GPG` is selected. In the `GPG` field, enter the full path to...
+To use the password store with QtPass or Browserpass, they need to be configured to use the `gpg2f` shim (instead of directly calling `gpg`). There are two versions of the shim:
 
-- `.gpg2f/scripts/pass-gpg-shim.sh` (on UNIX) or
+- UNIX: `.gpg2f/scripts/pass-gpg-shim.sh`
 
-- `.gpg2f\scripts\pass-gpg-shim.bat` (on Windows).
+- Windows: `.gpg2f\scripts\pass-gpg-shim.bat`
 
-At the bottom of the `Profiles` tab, set the `Current path` to the password store directory created above (e.g. `C:\gpg2f\password-store`).
+When configuring QtPass or Browserpass, the full/absolute path needs to be used, for example:
 
-To use the password store with Browserpass, copy the `.browserpass.json` template file into the password store directory:
+- UNIX: `/home/david/gpg2f/.gpg2f/scripts/pass-gpg-shim.sh`
+
+- Windows: `C:\gpg2f\.gpg2f\scripts\pass-gpg-shim.bat`
+
+To use QtPass with the newly created password store (and `gpg2f`), open QtPass' configuration dialog. In the `Programs` tab, make sure that `Native Git/GPG` is selected. Enter the path to the shim in the the `GPG` field. In the `Profiles` tab, add a profile or set the `Current path` at the bottom to the password store directory created above (e.g. `C:\gpg2f\password-store`).
+
+To use the password store with Browserpass, start by configuring the shim. This can be done directly in the web browser by opening the extension options and setting the `Custom gpg binary` property. Alternatively, copy the `.browserpass.json` template file into the password store directory:
 
 ```shell
 cp .gpg2f/templates/password-store/.browserpass.json password-store
 ```
 
-Then edit `password-store/.browserpass.json` and update the `gpgPath` to the full path of
-
-- `.gpg2f/scripts/pass-gpg-shim.sh` (on UNIX) or
-- `.gpg2f\scripts\pass-gpg-shim.bat` (on Windows).
-
-Backslashes in Windows paths need to be escaped. For example, it needs to look like
+Then edit `password-store/.browserpass.json` and update the `gpgPath`. Backslashes (in Windows paths) need to be escaped. The path should look like
 
 -  `C:\\gpg2f\\.gpg2f\\scripts\\pass-gpg-shim.bat` instead of
 - `C:\gpg2f\.gpg2f\scripts\pass-gpg-shim.bat`).
 
-Finally, open the Browserpass extension options in the browser and set the store location to the directory created above (for example `C:\gpg2f\password-store`).
+To configure the password store directory (from where to load the credentials), open the Browserpass extension settings in the browser and add the password store directory under `Custom store locations`.
 
 ## Why not use asymmetric encryption?
 
