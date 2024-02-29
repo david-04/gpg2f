@@ -49,19 +49,19 @@ chmod +x decrypt.sh encrypt.sh `find .gpg2f -name '*.sh'`
 To verify that all required programs are installed and working, run the command below. When prompted for a password, enter `x` (a single lowercase letter).
 
 ```shell
-echo "Hello world!" | encrypt.sh
+echo "Hello world!" | ./encrypt.sh
 ```
 
 The command might abort with an error like this:
 
 ```
-env: 'gpg2': No such file or directory
+gpg2: command not found
 ```
 
 By default, `gpg2f` uses the command `gpg2` to run the GNU Privacy Guard. If it's installed under a different name (e.g. `gpg`), open the `settings.sh` and update the `GPG2F_GPG_CMD` variable on top of the file. Then try to encrypt again:
 
 ```shell
-echo "Hello world!" | encrypt.sh
+echo "Hello world!" | ./encrypt.sh
 ```
 
 If everything works, the encrypted content is printed to the terminal:
@@ -79,7 +79,7 @@ EsLm++P9gVghMSghGXDLsC7DI4M7fqjF5Y1wPdlLSTHaov0=
 Now verify, that encrypted content can also be decrypted again:
 
 ```shell
-echo "Hello world!" | encrypt.sh | decrypt.sh
+echo "Hello world!" | ./encrypt.sh | ./decrypt.sh
 ```
 
 This should print the original message `Helow world!`
@@ -126,7 +126,7 @@ The next step is to generate an HMAC challenge-response secret key. The approach
 Now the secret key can be copied to the YubiKey. The command below uses the `ykman` command-line utility (part of the YubiKey Manager). It configures slot 1 for challenge-response. Change the parameter at the end of the command from `1` to `2` to configure slot 2 instead. Please note that this command will overwrite the slot's current configuration without additional prompt.
 
 ```shell
-( gpg2 --quiet --no-permission-warning --output - --decrypt .keys/hmac-secret-key.gpg && echo y ) | ykman otp chalresp --touch 1;
+( gpg2 --quiet --no-permission-warning --output - --decrypt .keys/hmac-secret-key.gpg && echo y ) | ykman otp chalresp --touch 1
 ```
 
 Alternatively, decrypt the secret key and copy-and-paste it into the YubiKey Manager frontend:
@@ -153,7 +153,7 @@ When encrypting (second variable), `gpg2f` will decrypt the static key and perfo
 Try to encrypt a message. This might prompt for the passphrase of `.keys/static-key.gpg` (unless it's already cached) and should then require a touch of the YubiKey:
 
 ```shell
-echo "Hello world!" | encrypt.sh test.gpg
+echo "Hello world!" | ./encrypt.sh test.gpg
 ```
 
 Verify that the content was encrypted correctly:
@@ -177,7 +177,7 @@ jwkp+RaJEno6EQ9QVMAsTnG9frSVQn/YijjjHGsi4dGr13M=
 Unplug the YubiKey and verify that the locally stored backup of the HMAC secret key can be used to decrypt the file. This might again prompt for the passphrases of  `.keys/static-key.gpg` and `.keys/hmac-secret-key.gpg`.
 
 ```shell
-decrypt.sh test.gpg
+./decrypt.sh test.gpg
 ```
 
 This command should should produce the original `Hello world!` message.
@@ -195,7 +195,7 @@ export GPG2F_DERIVE_ENCRYPTION_KEY_CMD=("${GPG2F_DERIVE_DECRYPTION_KEY_CMD[@]}")
 Verify that it works by en- and decrypting a message:
 
 ```shell
-echo "Hello world!" | encrypt.sh | decrypt.sh
+echo "Hello world!" | ./encrypt.sh | ./decrypt.sh
 ```
 
 This might prompt for the passphrase of `.keys/static-key.gpg`. Both operations should also require a touch of the YubiKey. That is, the YubiKey needs to be touched twice to complete the full cycle.
@@ -222,20 +222,20 @@ Use `encrypt.sh` (or `encrypt.bat` on Windows) to encrypt content. The plain tex
 
 ```shell
 # Encrypt stdin to stdout
-echo "Hello world!" | encrypt.sh
+echo "Hello world!" | ./encrypt.sh
 
 # Encrypt stdin to a file
-echo "Hello world!" | encrypt.sh my-file.gpg
+echo "Hello world!" | ./encrypt.sh my-file.gpg
 ```
 
 Use `decrypt.sh` (or `decrypt.bat` on Windows) to decrypt content. The encrypted content can be read from `stdin` or a file and the plain text is always written to `stdout`:
 
 ```shell
 # Decrypt a file to stdou
-decrypt.sh my-file.gpg
+./decrypt.sh my-file.gpg
 
 # Decrypt stdin to stdou
-cat ./my-file.gpg | decrypt.sh
+cat ./my-file.gpg | ./decrypt.sh
 ```
 
 Both commands need to be run from the application's root directory. They can't be invoked from a different directory.
@@ -243,7 +243,7 @@ Both commands need to be run from the application's root directory. They can't b
 The commands can also be called with the `--debug` option. This causes `gpg2f` to print diagnostic information for trouble-shooting:
 
 ```shell
-echo "Hello world!" | encrypt.sh --debug | decrypt.sh --debug
+echo "Hello world!" | ./encrypt.sh --debug | ./decrypt.sh --debug
 ```
 
 Please note that this will not only display derived keys (that are specific to the seed) but also the decrypted static key. It is recommended to create and use temporary keys when trouble-shooting configuration issues.
