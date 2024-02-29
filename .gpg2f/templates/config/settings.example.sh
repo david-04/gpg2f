@@ -91,8 +91,8 @@ export GPG2F_EXPECTED_ENCRYPTION_HASH_LENGTH="${GPG2F_EXPECTED_DECRYPTION_HASH_L
 #   .gpg2f/scripts/show-notification/powershell.sh ... use PowerShell to display a balloon tip/pop-up
 #
 # GPG2F_DEFAULT_NOTIFICATION_OPTIONS contains default options to customize the notification pop-up. They are specified
-# as an array of key=value pairs. Values (like the font name) can contain blanks. Most options are only supported by
-# the Java notifier. The PowerShell notifier only supports the "delay" option.
+# as space-separated string of key=value pairs. Values (like the font name) can contain blanks. Most options are only
+# supported by the Java notifier. The PowerShell notifier only supports the "delay" option.
 #
 #   background-color=#faac14 .................. pop-up background color
 #   delay=1s .................................. delay before showing the notification
@@ -108,4 +108,4 @@ export GPG2F_EXPECTED_ENCRYPTION_HASH_LENGTH="${GPG2F_EXPECTED_DECRYPTION_HASH_L
 #-----------------------------------------------------------------------------------------------------------------------
 
 export GPG2F_NOTIFICATION_CMD=(. .gpg2f/scripts/show-notification/auto.sh)
-export GPG2F_DEFAULT_NOTIFICATION_OPTIONS=(background-color=#faac14 fly-in-duration=1s window-position=C)
+export GPG2F_DEFAULT_NOTIFICATION_OPTIONS="background-color=#faac14 fly-in-duration=1s window-position=C"

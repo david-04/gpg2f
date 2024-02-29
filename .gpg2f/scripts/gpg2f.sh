@@ -446,7 +446,7 @@ function with-notification() {
 
 function gpg2f_get_notification_delay() {
     local OPTION
-    for OPTION in ${NOTIFICATION_OPTIONS} "${GPG2F_DEFAULT_NOTIFICATION_OPTIONS[@]}"; do
+    for OPTION in ${NOTIFICATION_OPTIONS} ${GPG2F_DEFAULT_NOTIFICATION_OPTIONS?}; do
         if [[ "${OPTION?}" =~ "delay=" ]]; then
             echo "${OPTION//delay=/}"
             return 0

@@ -137,8 +137,8 @@ function gpg2f_validate_config() {
     fi
     if ! declare -p GPG2F_DEFAULT_NOTIFICATION_OPTIONS >/dev/null 2>&1; then
         echo "ERROR: GPG2F_DEFAULT_NOTIFICATION_OPTIONS is not set"
-    elif [[ ! "$(declare -p GPG2F_DEFAULT_NOTIFICATION_OPTIONS)" =~ "declare -a" ]]; then
-        echo "ERROR: GPG2F_DEFAULT_NOTIFICATION_OPTIONS is not an array"
+    elif [[ "$(declare -p GPG2F_DEFAULT_NOTIFICATION_OPTIONS)" =~ "declare -a" ]]; then
+        echo "ERROR: GPG2F_DEFAULT_NOTIFICATION_OPTIONS is not a string"
     fi
 }
 
