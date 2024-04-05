@@ -504,4 +504,9 @@ function gpg2f_run_and_unset() {
     return ${EXIT_CODE?}
 }
 
+if [[ -f ./env.sh ]]; then
+    # shellcheck disable=SC1091
+    source ./env.sh
+fi
+
 gpg2f_run_and_unset "$@"
