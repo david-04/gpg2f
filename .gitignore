@@ -1,6 +1,7 @@
 /*
 !/.gpg2f
 !/.gitignore
+!/CHANGELOG.md
 !/decrypt.bat
 !/decrypt.sh
 !/encrypt.bat
