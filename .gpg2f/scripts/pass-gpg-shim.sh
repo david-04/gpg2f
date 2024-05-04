@@ -125,7 +125,7 @@ function gpg2f_passwordstore_shim_list_secret_keys_with_colons_and_fingerprint()
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_passwordstore_shim_encrypt() {
-    gpg2f_passwordstore_shim_encrypt_or_decrypt "encrypt.sh" "$1"
+    gpg2f_passwordstore_shim_encrypt_or_decrypt "encrypt" "$1"
     return $?
 }
 
@@ -136,14 +136,14 @@ function gpg2f_passwordstore_shim_encrypt() {
 #-----------------------------------------------------------------------------------------------------------------------
 
 function gpg2f_passwordstore_shim_decrypt() {
-    gpg2f_passwordstore_shim_encrypt_or_decrypt "decrypt.sh" "$1"
+    gpg2f_passwordstore_shim_encrypt_or_decrypt "decrypt" "$1"
     return $?
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Encrypt or decrypt content
 #-----------------------------------------------------------------------------------------------------------------------
-# $1 ... name of the script ("encrypt.sh" or "decrypt.sh")
+# $1 ... name of the script ("encrypt" or "decrypt")
 # $2 ... input file (decrypt stdin if not set or an empty string)
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -184,9 +184,10 @@ function gpg2f_passwordstore_shim_get_absolute_path() {
 }
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Locate the encrypt.sh script in the closest parent directory of the given file (or the current directory if not set)
+# Locate the encrypt or decrypt script in the closest parent directory of the given file (or the current directory if
+# not set)
 #-----------------------------------------------------------------------------------------------------------------------
-# $1 ... name of the script ("encrypt.sh" or "decrypt.sh")
+# $1 ... name of the script ("encrypt" or "decrypt")
 # $2 ... optional: absolute path of the file to encrypt or decrypt
 #-----------------------------------------------------------------------------------------------------------------------
 

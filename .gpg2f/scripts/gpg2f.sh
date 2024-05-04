@@ -63,8 +63,8 @@ function gpg2f_main() {
 function gpg2f_display_syntax_help() {
     echo "gpg2f - Symmetric multifactor-encryption with GnuPG"
     echo ""
-    echo "Syntax: encrypt.sh [--debug] [file]"
-    echo "    or: decrypt.sh [--debug] [file]"
+    echo "Syntax: encrypt [--debug] [file]"
+    echo "    or: decrypt [--debug] [file]"
     echo ""
     echo "Encrypt stdin to the given [file] or decrypt the given [file] to stdout."
     echo "If [file] is not given, encrypt to stdout or decrypt from stdin."
