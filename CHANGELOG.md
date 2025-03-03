@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.0.4](https://github.com/david-04/gpg2f/releases/tag/v1.0.4) (2025-03-04)
+
+- Retry up to two times when decrypting a file with `gpg` fails
+
 ## [1.0.3](https://github.com/david-04/gpg2f/releases/tag/v1.0.3) (2024-05-04)
 
 - Rename `encrypt.sh` and `decrypt.sh` to `encrypt` and `decrypt`

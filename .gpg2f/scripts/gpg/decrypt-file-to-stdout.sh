@@ -22,14 +22,19 @@ function gpg2f_decrypt_file_to_stdout() {
     fi
 
     # decrypt the file
-    # shellcheck disable=SC2317
     if [[ ! -f .gpg2f/scripts/utils/gpg-base-command.sh ]]; then
         echo "ERROR: $(pwd)/.gpg2f/scripts/utils/gpg-base-command.sh does not exist" >&2
         return 1
-    elif ! . .gpg2f/scripts/utils/gpg-base-command.sh decrypt "$@" --output - --decrypt "${INPUT_FILE?}"; then
-        echo "ERROR: Failed to decrypt ${INPUT_FILE?}" >&2
-        return 1
     fi
+
+    for _ in 1 2 3; do
+        # shellcheck disable=SC2317
+        if . .gpg2f/scripts/utils/gpg-base-command.sh decrypt "$@" --output - --decrypt "${INPUT_FILE?}"; then
+            return 0
+        fi
+    done
+    echo "ERROR: Failed to decrypt ${INPUT_FILE?}" >&2
+    return 1
 }
 
 # shellcheck disable=SC2317

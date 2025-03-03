@@ -92,7 +92,7 @@ function gpg2f_display_version_and_copyright() {
 
 function gpg2f_encrypt() {
 
-    # exgtract parameters
+    # extract parameters
     local OUTPUT_FILE="$1"
 
     # generate the seed
@@ -258,6 +258,7 @@ function gpg2f_derive_encryption_key() {
         gpg2f_debug "Deriving encryption key ${INDEX?}"
         gpg2f_debug "- seed: <${SEED?}>"
         gpg2f_debug "- command: ${COMMAND?}"
+        # shellcheck disable=SC2086
         if [[ -z "${COMMAND[*]}" ]]; then
             echo "ERROR: ${DERIVE_KEY_COMMANDS_VARIABLE_NAME?} contains an empty string/command" >&2
             return 1
