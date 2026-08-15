@@ -37,14 +37,21 @@ function gpg2f_passwordstore_shim_main() {
         return $?
     fi
 
-    # Add password: --batch -eq --output file.gpg -r WEUSESYMMETRICENCRYPTIONANDDONOTNEEDAKEY -
+    # Add password: --batch -eq --output file.gpg -r 00000000 -
 
     if [[ $# -eq 7 && "$1 $2 $3 $5 $7" == "--batch -eq --output -r -" ]]; then
         gpg2f_passwordstore_shim_encrypt "$4"
         return $?
     fi
 
-    # Modify password: --batch -eq --output file.gpg -r WEUSESYMMETRICENCRYPTIONANDDONOTNEEDAKEY --yes -
+    # Add password: --batch --status-fd 2 -eq --output file.gpg -r 00000000 -
+
+    if [[ $# -eq 9 && "$1 $2 $3 $4 $5 $7 $9" == "--batch --status-fd 2 -eq --output -r -" ]]; then
+        gpg2f_passwordstore_shim_encrypt "$6"
+        return $?
+    fi
+
+    # Modify password: --batch -eq --output file.gpg -r 00000000 --yes -
 
     if [[ $# -eq 8 && "$1 $2 $3 $5 $7 $8" == "--batch -eq --output -r --yes -" ]]; then
         gpg2f_passwordstore_shim_encrypt "$4"
@@ -69,7 +76,7 @@ function gpg2f_passwordstore_shim_main() {
         return $?
     fi
 
-    # Encrypt password: --encrypt --yes --quiet --batch --output file.gpg --recipient WEUSESYMMETRICENCRYPTIONANDDONOTNEEDAKEY
+    # Encrypt password: --encrypt --yes --quiet --batch --output file.gpg --recipient 00000000
 
     if [[ $# -eq 8 && "$1 $2 $3 $4 $5 $7" == "--encrypt --yes --quiet --batch --output --recipient" ]]; then
         gpg2f_passwordstore_shim_encrypt "$6"
@@ -98,7 +105,7 @@ function gpg2f_passwordstore_shim_main() {
 function gpg2f_passwordstore_shim_list_keys_with_colons_and_fingerprint() {
     echo "tru::1:1706424002:0:3:1:5"
     echo "pub:u:3072:1:C22C2F452E8AC7B1:1706423979:::u:::escaESCA::::::23::0:"
-    echo "fpr:::::::::WEUSESYMMETRICENCRYPTIONANDDONOTNEEDAKEY:"
+    echo "fpr:::::::::00000000:"
     echo "uid:u::::1706423979::AB28A8B7A77B2EDD18D31F6D5A7EC35D262616AA::GPG 2F <noreply@gpg2f.github.io>::::::::::0:"
     echo "sub:u:3072:1:A154755D016202A0:1706423979::::::esa::::::23:"
     echo "fpr:::::::::FFEA0A8C76546489108CBA8DA154755D016202A0:"
@@ -110,7 +117,7 @@ function gpg2f_passwordstore_shim_list_keys_with_colons_and_fingerprint() {
 
 function gpg2f_passwordstore_shim_list_secret_keys_with_colons_and_fingerprint() {
     echo "sec:u:3072:1:C22C2F452E8AC7B1:1706423979:::u:::escaESCA:::+:::23::0:"
-    echo "fpr:::::::::WEUSESYMMETRICENCRYPTIONANDDONOTNEEDAKEY:"
+    echo "fpr:::::::::00000000:"
     echo "grp:::::::::DE099AFBC3E6CCC81D3BFCB015C92BD746C9F4F8:"
     echo "uid:u::::1706423979::AB28A8B7A77B2EDD18D31F6D5A7EC35D262616AA::GPG 2F <noreply@gpg2f.github.io>::::::::::0:"
     echo "ssb:u:3072:1:A154755D016202A0:1706423979::::::esa:::+:::23:"

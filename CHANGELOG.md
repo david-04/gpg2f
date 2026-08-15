@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.0.5](https://github.com/david-04/gpg2f/releases/tag/v1.0.5) (2026-08-15)
+
+- Make `pass-gpg-shim.sh` compatible with QtPass 1.6.0
+
 ## [1.0.4](https://github.com/david-04/gpg2f/releases/tag/v1.0.4) (2025-03-04)
 
 - Retry up to two times when decrypting a file with `gpg` fails
