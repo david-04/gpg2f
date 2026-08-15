@@ -58,6 +58,13 @@ function gpg2f_passwordstore_shim_main() {
         return $?
     fi
 
+    # Modify password: --batch --status-fd 2 -eq --output file.gpg -r 00000000 --yes -
+
+    if [[ $# -eq 10 && "$1 $2 $3 $4 $5 $7 $9 ${10}" == "--batch --status-fd 2 -eq --output -r --yes -" ]]; then
+        gpg2f_passwordstore_shim_encrypt "$6"
+        return $?
+    fi
+
     # Decrypt password: -d --quiet --yes --no-encrypt-to --batch --use-agent file.gpg
 
     if [[ $# -eq 7 && "$1 $2 $3 $4 $5 $6" == "-d --quiet --yes --no-encrypt-to --batch --use-agent" ]]; then
