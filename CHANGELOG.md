@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.0.7](https://github.com/david-04/gpg2f/releases/tag/v1.0.7) (2026-10-01)
+
+- Make `pass-gpg-shim.sh` compatible with QtPass 1.8.1
+
 ## [1.0.6](https://github.com/david-04/gpg2f/releases/tag/v1.0.6) (2026-08-16)
 
 - Fixed an error in `pass-gpg-shim.sh` that prevented QtPass 1.6.0 from updating passwords

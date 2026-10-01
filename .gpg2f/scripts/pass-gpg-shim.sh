@@ -51,6 +51,13 @@ function gpg2f_passwordstore_shim_main() {
         return $?
     fi
 
+    # Add password: --batch --status-fd 2 -eq --compress-algo=none --no-encrypt-to --output test/test.gpg -r 00000000 -
+
+    if [[ $# -eq 11 && "$1 $2 $3 $4 $5 $6 $7 $9 ${11}" == "--batch --status-fd 2 -eq --compress-algo=none --no-encrypt-to --output -r -" ]]; then
+        gpg2f_passwordstore_shim_encrypt "$8"
+        return $?
+    fi
+
     # Modify password: --batch -eq --output file.gpg -r 00000000 --yes -
 
     if [[ $# -eq 8 && "$1 $2 $3 $5 $7 $8" == "--batch -eq --output -r --yes -" ]]; then
@@ -62,6 +69,14 @@ function gpg2f_passwordstore_shim_main() {
 
     if [[ $# -eq 10 && "$1 $2 $3 $4 $5 $7 $9 ${10}" == "--batch --status-fd 2 -eq --output -r --yes -" ]]; then
         gpg2f_passwordstore_shim_encrypt "$6"
+        return $?
+    fi
+
+    # Modify password: --batch --status-fd 2 -eq --compress-algo=none --no-encrypt-to --output test/adf.gpg -r 00000000 --yes -
+    #                     1         2      3  4          5                 6             7         8         9   10      11   12
+
+    if [[ $# -eq 12 && "$1 $2 $3 $4 $5 $6 $7 $9 ${11} ${12}" == "--batch --status-fd 2 -eq --compress-algo=none --no-encrypt-to --output -r --yes -" ]]; then
+        gpg2f_passwordstore_shim_encrypt "$8"
         return $?
     fi
 
