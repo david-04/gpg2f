@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.0.8](https://github.com/david-04/gpg2f/releases/tag/v1.0.8) (2026-11-22)
+
+- Add support for `ykchalresp` (YubiKey Personalization Tool)
+
 ## [1.0.7](https://github.com/david-04/gpg2f/releases/tag/v1.0.7) (2026-10-01)
 
 - Make `pass-gpg-shim.sh` compatible with QtPass 1.8.1

@@ -29,8 +29,10 @@ export GPG2F_EXPECTED_SEED_LENGTH=126
 # GPG2F_DERIVE_DECRYPTION_KEY_CMD can contain multiple commands to generate one or more derived keys. Each command
 # receives the seed from stdin and prints the derived key to stdout.
 #
-#   - Calculate the seed's HMAC SHA-1 via YubiKey's challenge-response (the first parameter is the YubiKey slot):
+#   - Calculate the seed's HMAC SHA-1 via YubiKey's ykman challenge-response (the first parameter is the YubiKey slot):
 #     ". .gpg2f/scripts/derive-key/yubikey-challenge-response.sh 1"
+#   - Calculate the seed's HMAC SHA-1 via YubiKey's ykchalresp challenge-response (the first parameter is the YubiKey slot):
+#     ". .gpg2f/scripts/derive-key/ykchalresp.sh 1"
 #   - Calculate the seed's HMAC SHA-1 locally with OpenSSL, using a secret from a GnuPG-encrypted file:
 #     ". .gpg2f/scripts/derive-key/openssl-hmac-sha1.sh .gpg2f/templates/keys/hmac-secret-key.example.gpg"
 #   - Extract a static password from a GnuPG-encrypted file (without using the seed)
